@@ -1,0 +1,182 @@
+/* ==========================================================================
+   ported from masaladeutsch — research style.                           v2.1.0  2026-08-06
+   --------------------------------------------------------------------------
+   Light. White space does the work; almost nothing is boxed, shaded or ruled.
+
+   Layout idiom from institutional research publishing: light-weight serif
+   display headline, uppercase letter-spaced section labels, light sans body,
+   numbered exhibits with a source line. Chart rules follow the Urban Institute
+   data-visualization style guide (urbaninstitute.github.io/graphics-styleguide).
+
+   NOT copied: any publisher's licensed fonts, wordmark, or brand colour used as
+   identity. Type is free/system.
+
+   Scoped to .rr. Declares no colour outside .rr — post CSS must never fight the
+   theme again (see DESIGN_LOG 2026-08-06).
+   ========================================================================== */
+
+.rr {
+  /* text */
+  --ink:      #1a1a1a;   /* 15.9:1 on white */
+  --ink-soft: #595959;   /*  7.0:1 — Urban's "space gray" band */
+  --rule:     #e2e2e2;
+  --accent:   #8a4b08;   /*  6.6:1 — the blog's own accent, kept */
+  --link:     #12408f;   /*  8.9:1 */
+
+  /* Urban Institute categorical palette, for charts only.
+     Urban blue #1696D2 fails contrast as text — never use it for type. */
+  --c-blue:   #1696D2;
+  --c-gray:   #D2D2D2;   /* deemphasise everything that is not the point */
+  --c-black:  #000000;
+  --c-yellow: #FDBF11;
+  --c-magenta:#EC008B;
+  --c-spgray: #696969;
+  --c-green:  #55B748;
+  --c-red:    #DB2B27;
+  --c-deep:   #0A4C6A;   /* accessible stand-in for blue in headings */
+
+  --measure: 36rem;      /* ~66 characters */
+
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 300;
+  line-height: 1.6;
+  max-width: 54rem;
+  margin: 0 auto;
+}
+
+/* ---- masthead: type only, no rules ------------------------------------- */
+.rr .rr-eyebrow {
+  font-size: .72rem; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 .9rem;
+}
+.rr h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 300; font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.16; letter-spacing: -.01em;
+  margin: 0 0 1rem; max-width: 24ch;
+}
+.rr .rr-standfirst {
+  font-size: 1.24rem; font-weight: 300; line-height: 1.5;
+  color: var(--ink-soft); max-width: var(--measure); margin: 0 0 1.2rem;
+}
+.rr .rr-byline {
+  font-size: .78rem; color: var(--ink-soft); margin: 0 0 2.6rem;
+}
+
+/* ---- reading column ---------------------------------------------------- */
+.rr p, .rr ul, .rr ol, .rr .rr-note, .rr .rr-warn { max-width: var(--measure); }
+.rr p { margin: 0 0 1.1rem; }
+.rr li { margin: 0 0 .4rem; }
+
+/* ---- section labels: one hairline, no heavy bar ------------------------ */
+.rr h2 {
+  font-size: .74rem; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-soft);
+  margin: 3rem 0 .35rem; padding-top: .8rem;
+  border-top: 1px solid var(--rule); max-width: var(--measure);
+}
+.rr .rr-h2sub {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.6rem; font-weight: 400; line-height: 1.25;
+  margin: 0 0 1rem; max-width: 26ch;
+}
+.rr h3 {
+  font-size: 1.02rem; font-weight: 600; margin: 1.8rem 0 .4rem;
+  max-width: var(--measure);
+}
+
+/* ---- pull statistics: hairline separators only ------------------------- */
+.rr .rr-stats {
+  display: grid; gap: 0 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin: 2rem 0;
+}
+.rr .rr-stat { padding: .9rem 0; border-top: 1px solid var(--rule); }
+.rr .rr-stat b {
+  display: block; font-family: Georgia, serif; font-weight: 400;
+  font-size: 2rem; line-height: 1; color: var(--accent); margin-bottom: .3rem;
+}
+.rr .rr-stat span { font-size: .8rem; color: var(--ink-soft); display: block; }
+
+/* ---- exhibits: white background, per Urban ("no coloured backgrounds") -- */
+.rr .rr-exhibit { margin: 2.4rem 0; }
+.rr .rr-exhibit-no {                     /* Urban: figure # ALL CAPS, 11px */
+  font-size: .69rem; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--c-deep); margin: 0 0 .25rem;
+}
+.rr .rr-exhibit-title {                  /* Urban: title 20px, title case */
+  font-size: 1.25rem; font-weight: 700; line-height: 1.3;
+  margin: 0 0 .2rem; max-width: 46ch; color: var(--ink);
+}
+.rr .rr-exhibit-sub {                    /* Urban: subtitle 16px italic */
+  font-size: 1rem; font-style: italic; font-weight: 300;
+  color: var(--ink-soft); margin: 0 0 .9rem; max-width: 52ch;
+}
+.rr .rr-exhibit-source {                 /* Urban: source 11px, sentence case */
+  font-size: .72rem; color: var(--ink-soft); line-height: 1.45; margin: .7rem 0 0;
+}
+.rr .rr-scroll { overflow-x: auto; }
+
+/* ---- tables: Urban's rule — rule under headings and final row, no verticals */
+.rr table { width: 100%; border-collapse: collapse; font-size: .85rem; font-weight: 400; }
+.rr thead th {
+  text-align: right; font-weight: 600; font-size: .7rem;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft);
+  border-bottom: 1px solid var(--c-black);
+  padding: .45rem .65rem; vertical-align: bottom;
+}
+.rr thead th:first-child, .rr tbody td:first-child { text-align: left; }
+.rr tbody td {
+  text-align: right; padding: .46rem .65rem;
+  border-bottom: 1px dotted #D9D9D9;      /* Urban: optional 1pt round dot */
+  font-variant-numeric: tabular-nums;
+  word-wrap: break-word; overflow-wrap: break-word;
+}
+.rr tbody tr:last-child td { border-bottom: 1px solid var(--c-black); }
+
+/* ---- callouts: a single hairline, no fill ------------------------------ */
+.rr .rr-note, .rr .rr-warn {
+  border-left: 2px solid var(--rule); padding: 0 0 0 1rem;
+  margin: 1.6rem 0; font-size: .95rem; color: var(--ink-soft);
+}
+.rr .rr-warn { border-left-color: var(--c-red); }
+.rr blockquote {
+  margin: 2rem 0; padding: 0; max-width: var(--measure);
+  font-family: Georgia, serif; font-size: 1.34rem; font-weight: 400;
+  line-height: 1.38; color: var(--ink);
+}
+
+/* ---- chart primitives, Urban-conformant --------------------------------
+   Bars start at zero. Gridlines are the faintest thing on the page and only
+   horizontal. Tick marks on continuous axes only. Label series directly and
+   drop the legend wherever it fits.                                        */
+.rr .rr-chart { margin: .4rem 0 0; }
+.rr .rr-chart .grid line, .rr .rr-chart .gridline { stroke: #ededed; stroke-width: 1; }
+.rr .rr-chart .domain, .rr .rr-chart .axis-line { stroke: var(--c-black); stroke-width: 1; }
+.rr .rr-chart text { font-size: 12px; fill: var(--c-black); font-weight: 400; }
+.rr .rr-chart .tick text { font-size: 12px; fill: var(--ink-soft); }
+.rr .rr-chart .series-label { font-size: 12px; font-weight: 600; }
+.rr .rr-chart .muted { fill: var(--c-gray); stroke: var(--c-gray); }
+.rr .rr-legend { font-size: .82rem; color: var(--ink-soft); margin: 0 0 .5rem; }
+.rr .rr-legend i {
+  display: inline-block; width: .62rem; height: .62rem;
+  margin: 0 .3rem 0 .9rem; border-radius: 2px; vertical-align: baseline;
+}
+.rr .rr-legend i:first-child { margin-left: 0; }
+
+/* ---- links and footer -------------------------------------------------- */
+.rr a { color: var(--link); text-decoration: none; border-bottom: 1px solid #c3d0e6; }
+.rr a:hover { border-bottom-color: var(--link); }
+.rr .rr-sources, .rr .disclaimer {
+  font-size: .78rem; color: var(--ink-soft); max-width: 46rem;
+}
+.rr .rr-sources { margin: 2.6rem 0 0; padding-top: .9rem; border-top: 1px solid var(--rule); }
+.rr .rr-revised { font-size: .76rem; color: var(--ink-soft); margin: 0 0 1.2rem; }
+
+@media (max-width: 40rem) {
+  .rr { font-size: 1rem; }
+  .rr .rr-stats { gap: 0 1rem; }
+}
+.rr img, .rr svg, .rr canvas { max-width: 100%; height: auto; }

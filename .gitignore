@@ -6,3 +6,10 @@ __pycache__/
 *client_secret*.json
 *blogger_client*.json
 *token*.json
+
+# tools/mobile_check.py writes these next to the post it renders
+posts/*.render.html
+posts/*.render.html.*.png
+
+# consistency-check/fix.py's output, not source
+consistency-check/fixes/

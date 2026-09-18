@@ -1,0 +1,283 @@
+<!--
+  post skeleton (ported from masaladeutsch) — frozen 2026-08-06, mobile/colour reference added
+  2026-08-14, mono-label/.good/.chip additions 2026-09-17. See DESIGN_LOG.md
+  for why. Replace the XX prefix with a short
+  per-post class (rsx, ecx, fertx, mapx …) so the styles stay scoped to this
+  post. Keep the element order below. Run
+  ~/blog-consistency-check/audit.py --url <live url> --rendered before calling
+  a post done.
+
+  DO NOT COPY A PAST POST'S <div class="topnav-index-link">...<h1>...</h1>
+  BLOCK AS A SHORTCUT. Copying an older post's raw header (rather than this
+  skeleton) is exactly how the snippet bug reappeared on three posts in
+  August 2026 — those posts had a valid-looking header that simply predated
+  this file's gs-head-order fix. Always start a new post from this file.
+
+  ---- MOBILE / RESPONSIVE (verified 2026-08-14 at 375px viewport) ----
+  Every rule below already produces zero page-level horizontal scroll on
+  mobile, verified across 5+ live posts: .tw{overflow-x:auto} makes the TABLE
+  WRAPPER, not the page, the scrolling element, so a table with many columns
+  scrolls inside its own box instead of blowing out the viewport — do not
+  remove .tw from around a <table>, and do not set a fixed px width on a
+  table or its wrapper. The .stats grid uses auto-fit/minmax so cards
+  collapse to one column on narrow screens without a media query. The a11y
+  bar and translate widget both wrap via flex-wrap. If you add any new
+  block-level element with a fixed width, wrap it in a class with
+  `max-width:100%;overflow-x:auto` the same way .tw does, or it will
+  reintroduce page-level mobile overflow.
+-->
+<div class="artx XX">
+<style>
+/* ---- typography (gs-typo-unify-v1): keep in sync across all posts ---- */
+.XX{font-family:Georgia,'Times New Roman',serif;line-height:1.6;color:#111}
+.XX h1,.XX h2,.XX h3{line-height:1.3}
+
+/* ---- palette: define every colour as a custom property here. Do not add
+       raw hex elsewhere in a post's <style> block — reference these vars, so
+       a future palette change is a 4-line edit instead of a find-and-replace
+       across every post. ----
+   --ink     #111    body text, light-locked (see below)
+   --accent  #8a4b08  eyebrow text, h2 rule, table header bg, stat numbers —
+                       the one colour that carries this post's "brand"
+   --rule    #e8dcc4  hairline borders, h2 underline, table cell borders
+   --panel   #fdf7ec  stat-card bg, even table rows — the palette's one tint
+*/
+.XX{--ink:#111;--accent:#8a4b08;--rule:#e8dcc4;--panel:#fdf7ec;--good:#1a7a4c;--good-soft:#eaf6ef;--bad:#a5402c;--bad-soft:#fff4f0}
+
+/* ---- mono-label convention (added 2026-09-17, borrowed from the
+       india-trade-sector-policy-recommendations design system): the eyebrow
+       kicker and the source line read as data-journalism metadata, not
+       article prose, so they get a monospace face — a system stack, not a
+       hosted webfont, so no post gains an extra network request or a
+       flash-of-unstyled-text risk. Body text (h1/p/li/table) keeps the
+       serif — this is a two-place accent, not a font-pairing overhaul. ---- */
+.XX{--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+
+/* ---- light lock (gs-light-lock): a dark Blogger theme (and a browser/OS
+       set to prefers-color-scheme:dark) must not repaint text. Re-assert
+       the same values with !important — verified 2026-08-14 across 5 live
+       posts with the browser's colour scheme forced to dark: body/h1/p/table
+       all stayed light-background/dark-text with no low-contrast pairs.
+       Do NOT add selectors here for panels that are meant to be dark —
+       those go in the guard below. ---- */
+.XX,.XX p,.XX li,.XX td,.XX th{color:var(--ink)!important}
+.XX{background:#fff!important}
+
+/* ---- structure: title + subtitle ----
+   .eyebrow    = the small-caps kicker ABOVE the h1 — "Section · Topic ·
+                 Subtopic", sets context before the reader hits the claim
+   h1          = the headline itself. Write it as the CLAIM, not the topic
+                 ("The Rouble Is the Outlier, Not the Dollar" beats
+                 "Currency Trends Update"). font-size 1.5rem is the deliberate
+                 site-wide size — do not bump it per-post.
+   .standfirst = the one/two-sentence SUBTITLE directly under the h1. This is
+                 also what Blogger's snippet extractor and the JSON-LD meta
+                 description both read (see the gs-head-order block below) —
+                 write it as a real, complete sentence a reader could act on,
+                 not a fragment.
+*/
+.XX .eyebrow{font-size:.8rem;font-weight:700;letter-spacing:.04em;color:var(--accent);text-transform:uppercase;margin:0 0 6px;font-family:var(--mono)}
+.XX h1{margin:0 0 10px;font-size:1.5rem}
+.XX .standfirst{font-size:1.05rem;color:#333!important;margin:0 0 18px}
+.XX .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:18px 0}
+.XX .stat{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.XX .stat b{display:block;font-size:1.2rem;color:var(--accent)}
+.XX .stat span{font-size:.8rem}
+.XX h2{color:var(--accent);border-bottom:2px solid var(--rule);padding-bottom:6px;margin-top:30px;font-size:1.15rem}
+
+/* ---- tables: units live in the header, cells carry bare numbers.
+       .tw is the mobile-overflow fix — see the MOBILE comment above. ---- */
+.XX .tw{overflow-x:auto}
+.XX table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.88rem}
+.XX th,.XX td{border:1px solid var(--rule);padding:7px 9px;text-align:right;word-wrap:break-word;overflow-wrap:break-word}
+.XX th:first-child,.XX td:first-child{text-align:left}
+.XX th{background:var(--accent);color:#fff!important;font-weight:600}
+.XX tr:nth-child(even){background:var(--panel)}
+
+.XX .note{background:#eef4ff;border-left:4px solid #2a78d6;padding:12px 16px;margin:18px 0;border-radius:0 8px 8px 0;font-size:.93rem}
+.XX .warn{background:var(--bad-soft);border-left:4px solid var(--bad);padding:12px 16px;margin:18px 0;border-radius:0 8px 8px 0;font-size:.93rem}
+/* ---- .good (added 2026-09-17): third semantic tier alongside .note (neutral
+       framing) and .warn (a caveat/scope limit) — for the case a caveat block
+       would otherwise get stretched to cover: confirming a figure checked out,
+       a correction that resolved cleanly, a claim that survived cross-check.
+       Same shape as .note/.warn on purpose, so all three read as one family. */
+.XX .good{background:var(--good-soft);border-left:4px solid var(--good);padding:12px 16px;margin:18px 0;border-radius:0 8px 8px 0;font-size:.93rem}
+/* ---- .chip (added 2026-09-17): formalises a labelling pattern several posts
+       already built ad hoc in JS (e.g. "PLI coverage: strong/partial/gap")
+       into one reusable inline component, so a new post doesn't reinvent it.
+       Use inline: <span class="chip chip-good">Strong</span>. ---- */
+.XX .chip{display:inline-block;font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.02em;padding:.15rem .5rem;border-radius:99px;line-height:1.5}
+.XX .chip-good{background:var(--good-soft);color:var(--good)}
+.XX .chip-warn{background:var(--panel);color:var(--accent)}
+.XX .chip-bad{background:var(--bad-soft);color:var(--bad)}
+.XX .src{font-size:.84rem;font-family:var(--mono);border-top:1px solid var(--rule);padding-top:12px;margin-top:24px}
+.XX .disclaimer{font-size:.82rem;color:#555;margin-top:10px}
+.XX .revised{font-size:.8rem;color:#555!important;margin:0 0 14px}
+.XX .revised code{font-family:inherit;background:var(--panel);padding:1px 5px;border-radius:4px}
+</style>
+
+<!--
+  1. Header block — required on every post, and its structure matters.
+  Blogger's data:post.snippet (the "Recent analysis" home-page cards) does pure
+  server-side plain-text extraction from the raw HTML source, tags stripped, in
+  source order — it has NO awareness of CSS, so visual position never affects
+  it. If the index backlink / eyebrow / duplicate title run first in source,
+  the home page shows "All Articles (Index) Section · Topic Headline..." — nav
+  chrome, not the article. The fix: this flex wrapper puts <p class="standfirst">
+  FIRST in source (so the snippet reads real opening prose) while `order`
+  restores the normal reading layout — backlink, eyebrow, title, standfirst —
+  on screen. Do not reorder these elements back to document order; that
+  reintroduces the bug. The site's JSON-LD script (theme.xml) already relies on
+  `.standfirst` the same way for meta description, so this class must stay.
+-->
+<div class="gs-head-order" style="display:flex;flex-direction:column">
+<p class="standfirst" style="order:4">One sentence saying what the numbers show and why it matters.</p>
+<div class="topnav-index-link" style="order:1;font-size:.82em;margin:6px 0 14px"><a href="{{SITE_INDEX_URL}}" style="color:#0b5394;text-decoration:none">&#8592; All Articles (Index)</a></div>
+<p class="eyebrow" style="order:2">Section &middot; Topic &middot; Subtopic</p>
+<h1 style="order:3">Headline &mdash; the claim, not the topic</h1>
+</div>
+
+<!--
+  2. Accessibility bar + translate widget — required on every post. Placed AFTER
+  the header block in source order for the same reason as above: keep real
+  content first, this block visually renders fine lower down (it does not need
+  to be first for its own accessibility purpose — the skip-link still works via
+  its href/focus regardless of position).
+-->
+<a href="#" id="gs-skip-link" class="gs-skip-link" style="position:absolute;left:-9999px;top:auto;background:#1a1a1a;color:#fff;padding:.6rem 1rem;z-index:1000;border-radius:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:.85rem">Skip to article content</a>
+<style>.gs-skip-link:focus{left:8px!important;top:8px!important}
+.gs-a11y-bar{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:#f4f5f7;border:1px solid #dfe3e8;border-radius:8px;padding:.55rem .8rem;margin:10px 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+.gs-a11y-bar .gs-a11y-label{font-size:.68rem;font-weight:700;letter-spacing:.08em;color:#666;text-transform:uppercase;margin-right:.15rem}
+.gs-a11y-bar button{cursor:pointer;border:1px solid #c7cbd1;background:#fff;color:#1a1a1a;border-radius:5px;padding:.32rem .65rem;font-family:inherit;line-height:1}
+.gs-a11y-bar button.gs-a11y-fs{font-weight:700;min-width:2rem;text-align:center}
+.gs-a11y-bar button.gs-a11y-fs[data-size="sm"]{font-size:.8rem}
+.gs-a11y-bar button.gs-a11y-fs[data-size="md"]{font-size:1rem}
+.gs-a11y-bar button.gs-a11y-fs[data-size="lg"]{font-size:1.2rem}
+.gs-a11y-bar button.gs-a11y-fs[aria-pressed="true"]{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.gs-a11y-bar button:hover{border-color:#8a4b08}
+.gs-a11y-bar button:focus-visible{outline:2px solid #8a4b08;outline-offset:1px}
+.gs-a11y-bar .gs-a11y-sep{width:1px;align-self:stretch;background:#dfe3e8;margin:0 .1rem}</style>
+<div class="gs-a11y-bar" role="group" aria-label="Accessibility controls">
+<span class="gs-a11y-label">Text Size</span>
+<button type="button" class="gs-a11y-fs" data-size="sm" aria-pressed="false" aria-label="Small text">A</button>
+<button type="button" class="gs-a11y-fs" data-size="md" aria-pressed="true" aria-label="Medium text">A</button>
+<button type="button" class="gs-a11y-fs" data-size="lg" aria-pressed="false" aria-label="Large text">A</button>
+<span class="gs-a11y-sep"></span>
+<button type="button" id="gs-a11y-listen" aria-label="Read this article aloud">&#128266; Listen</button>
+<button type="button" id="gs-a11y-stop" aria-label="Stop reading aloud">&#9632; Stop</button>
+</div>
+<script>(function(){
+var KEY='gs-a11y-fontsize', SIZES={sm:'0.92',md:'1',lg:'1.15'};
+function pb(){return document.querySelector('.post-body')||document.querySelector('.artx,.mdrx');}
+function apply(sz){
+  var el=pb(); if(!el||!SIZES[sz]) return;
+  el.style.fontSize=SIZES[sz]+'em';
+  var btns=document.querySelectorAll('.gs-a11y-fs');
+  for(var i=0;i<btns.length;i++){
+    var on=btns[i].getAttribute('data-size')===sz;
+    btns[i].setAttribute('aria-pressed', on?'true':'false');
+  }
+  try{localStorage.setItem(KEY,sz);}catch(e){}
+}
+var fsBtns=document.querySelectorAll('.gs-a11y-fs');
+for(var j=0;j<fsBtns.length;j++){
+  fsBtns[j].addEventListener('click',(function(b){return function(){apply(b.getAttribute('data-size'));};})(fsBtns[j]));
+}
+var saved; try{saved=localStorage.getItem(KEY);}catch(e){}
+apply(saved&&SIZES[saved]?saved:'md');
+
+var listenBtn=document.getElementById('gs-a11y-listen'), stopBtn=document.getElementById('gs-a11y-stop');
+if(listenBtn){
+  listenBtn.addEventListener('click', function(){
+    if(!('speechSynthesis' in window)){ alert('Text-to-speech is not supported in this browser.'); return; }
+    window.speechSynthesis.cancel();
+    var src=pb(); if(!src) return;
+    var clone=src.cloneNode(true);
+    var strip=clone.querySelectorAll('script,style,svg');
+    for(var k=0;k<strip.length;k++){ strip[k].parentNode.removeChild(strip[k]); }
+    var text=clone.textContent.replace(/\s+/g,' ').trim();
+    if(!text) return;
+    var chunks=text.match(/[\s\S]{1,180}(?:[.!?]|$)/g)||[text];
+    var idx=0;
+    function speakNext(){
+      if(idx>=chunks.length) return;
+      var u=new SpeechSynthesisUtterance(chunks[idx]);
+      u.onend=function(){ idx++; speakNext(); };
+      window.speechSynthesis.speak(u);
+    }
+    speakNext();
+  });
+}
+if(stopBtn){
+  stopBtn.addEventListener('click', function(){
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  });
+}
+var skip=document.getElementById('gs-skip-link');
+if(skip){
+  skip.addEventListener('click', function(ev){
+    ev.preventDefault();
+    var h=document.querySelector('.post-body h1')||document.querySelector('.artx h1,.mdrx h1,h1');
+    if(h){ h.setAttribute('tabindex','-1'); h.focus(); h.scrollIntoView(); }
+  });
+}
+})();</script>
+<style>.goog-te-menu-frame{max-width:340px!important;max-height:70vh!important;overflow:auto!important;box-shadow:0 6px 24px rgba(0,0,0,.25)!important}</style>
+<div id="google_translate_element" style="margin:8px 0 16px;"></div><script type="text/javascript">function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:"en",includedLanguages:"hi,bn,ta,te,mr,gu,kn,ml,pa,or,as,ur,sa,ne,sd",layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},"google_translate_element");}</script><script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<!--
+  3. Revision line. Update BOTH the datetime attribute and the visible text on
+  every substantive edit, and keep the version in step with meta/<slug>.json in
+  the archive (tools/snapshot.py classifies the bump; see DESIGN_LOG.md).
+  MAJOR = a figure or conclusion changed · MINOR = new section · PATCH = wording,
+  styling, typo. The <time> element carries a machine-readable dateModified for
+  search engines; the visible text is what tells a reader the piece is maintained.
+-->
+<p class="revised" data-gs-revision-v1="1">Revised
+<time datetime="YYYY-MM-DD" itemprop="dateModified">D Month YYYY</time>
+&middot; <code>v1.0.0</code> &middot; <a href="#changelog">what changed</a></p>
+
+<div class="stats">
+<div class="stat"><b>&#8377;0</b><span>What this figure is, with its unit</span></div>
+</div>
+
+<p>Opening paragraph. Lead with the finding.</p>
+
+<h2>Section</h2>
+
+<div class="tw">
+<table>
+<tr><th>Item</th><th>Value (&#8377; crore)</th><th>Share (%)</th></tr>
+<tr><td>Example</td><td>1,234</td><td>12.3</td></tr>
+</table>
+</div>
+
+<div class="note"><b>Context.</b> Use for framing a number.</div>
+<div class="warn"><b>Caveat.</b> Use for a unit trap, a scope limit, or a figure that is an estimate.</div>
+<div class="good"><b>Checked.</b> Use to confirm a figure survived cross-check or a prior correction resolved cleanly — the positive counterpart to .warn, not a replacement for it.</div>
+
+<p>Coverage example: PLI Widgets <span class="chip chip-good">Strong</span>, PLI Gadgets <span class="chip chip-warn">Partial</span>, PLI Gizmos <span class="chip chip-bad">Gap</span> — inline status labels for a scheme, a molecule, a claim; keep the label itself in the chip text, not just the colour.</p>
+
+<p class="src">Sources: name the primary source and the exact table or release. Mark
+anything modelled or indicative as such.</p>
+
+<!--
+  4. Revision history. Newest first. One line per published revision; say what a
+  returning reader needs to know, not what the diff looks like. Drop the whole
+  block on a post that has never been revised.
+-->
+<div id="changelog" class="note">
+<b>Revision history.</b>
+<ul>
+<li><b>v1.1.0</b> &mdash; 00 Month YYYY &mdash; added the section on X.</li>
+<li><b>v1.0.0</b> &mdash; 00 Month YYYY &mdash; first published.</li>
+</ul>
+</div>
+
+<!--
+  5. AI disclosure — LAST, after every </script> in the document.
+  Never insert it inside a script; that breaks the JS and kills the charts.
+-->
+<p class="disclaimer" data-gs-ai-disclosure-v1="1"><strong>About this article:</strong> Researched, written and edited by Umashankar Triplicane Dwarakanathan, with AI research assistance; every figure is meant to trace to the primary source cited. See the <a href="{{SITE_URL}}/p/disclaimer.html">Editorial Policy</a> for how sourcing, AI use and corrections work.</p>
+
+</div>
