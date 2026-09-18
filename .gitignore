@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# never commit OAuth material (same convention as blogger_writeups_code)
+*client_secret*.json
+*blogger_client*.json
+*token*.json

@@ -1,0 +1,7 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  quality:
+    uses: herrrickshaw/.github/.github/workflows/quality.yml@main
+    with:
+      python: "true"
