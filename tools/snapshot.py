@@ -26,6 +26,7 @@ is not a policy workaround, it is using the channel this codebase already
 depends on for an equivalent read (list every live post with full content),
 and it works from an unrestricted environment too.
 """
+
 import argparse
 import datetime as dt
 import hashlib
@@ -45,7 +46,7 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 PAGE = 100
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import blogger_api as B  # noqa: E402
+import blogger_api as B
 
 _TS_NO_MS = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})([+-]\d{2}:\d{2})$")
 
@@ -77,15 +78,19 @@ def all_entries():
         if not items:
             break
         for it in items:
-            out.append({
-                "id": {"$t": f"tag:blogger.com,1999:blog.{B.BLOG_ID}.post-{it['id']}"},
-                "link": [{"rel": "alternate", "href": it["url"]}],
-                "content": {"$t": it.get("content", "")},
-                "title": {"$t": it.get("title", "")},
-                "published": {"$t": _with_ms(it["published"])},
-                "updated": {"$t": _with_ms(it["updated"])},
-                "category": [{"term": lbl} for lbl in it.get("labels", [])],
-            })
+            out.append(
+                {
+                    "id": {
+                        "$t": f"tag:blogger.com,1999:blog.{B.BLOG_ID}.post-{it['id']}"
+                    },
+                    "link": [{"rel": "alternate", "href": it["url"]}],
+                    "content": {"$t": it.get("content", "")},
+                    "title": {"$t": it.get("title", "")},
+                    "published": {"$t": _with_ms(it["published"])},
+                    "updated": {"$t": _with_ms(it["updated"])},
+                    "category": [{"term": lbl} for lbl in it.get("labels", [])],
+                }
+            )
         token = page.get("nextPageToken")
         if not token:
             break
@@ -129,7 +134,7 @@ MARKERS = {
     ),
     "disclaimer_in_script": lambda b: any(
         "AI Disclosure" in s
-        for s in re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", b, re.I)
+        for s in re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", b, re.IGNORECASE)
     ),
 }
 
@@ -162,15 +167,17 @@ def marker_delta(old, rec):
 # semver reserves 0.y.z for "anything MAY change at any time".
 FIRST_VERSION = "1.0.0"
 
-_DROP = re.compile(r"<(script|style)\b[^>]*>[\s\S]*?</\1>", re.I)
+_DROP = re.compile(r"<(script|style)\b[^>]*>[\s\S]*?</\1>", re.IGNORECASE)
 # The revision line and the revision-history block are *about* the version, so
 # they must not feed back into classifying it — their dates and version numbers
 # would otherwise read as "figures changed" and force a spurious MAJOR bump.
-_REVLINE = re.compile(r"<p\b[^>]*data-gs-revision-v1[^>]*>[\s\S]*?</p>", re.I)
-_REVBLOCK = re.compile(r"<div\b[^>]*id=[\"']changelog[\"'][^>]*>[\s\S]*?</div>", re.I)
+_REVLINE = re.compile(r"<p\b[^>]*data-gs-revision-v1[^>]*>[\s\S]*?</p>", re.IGNORECASE)
+_REVBLOCK = re.compile(
+    r"<div\b[^>]*id=[\"']changelog[\"'][^>]*>[\s\S]*?</div>", re.IGNORECASE
+)
 _TAG = re.compile(r"<[^>]+>")
 _NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
-_HEAD = re.compile(r"<h[1-4][^>]*>([\s\S]*?)</h[1-4]>", re.I)
+_HEAD = re.compile(r"<h[1-4][^>]*>([\s\S]*?)</h[1-4]>", re.IGNORECASE)
 
 
 def visible_text(html_str):
@@ -184,7 +191,9 @@ def visible_text(html_str):
 
 def headings(html_str):
     html_str = _REVBLOCK.sub(" ", html_str)
-    return [re.sub(r"\s+", " ", _TAG.sub("", h)).strip() for h in _HEAD.findall(html_str)]
+    return [
+        re.sub(r"\s+", " ", _TAG.sub("", h)).strip() for h in _HEAD.findall(html_str)
+    ]
 
 
 def classify(old_body, new_body):
@@ -196,8 +205,10 @@ def classify(old_body, new_body):
         # just returned while the manifest says the bytes moved, the file was
         # edited in place and then published — so this diff is the new body
         # against itself and would score "nothing changed" for any edit at all.
-        return None, ("posts/ already held the published body — edited in place, "
-                      "so no diff was possible; set the level with --as")
+        return None, (
+            "posts/ already held the published body — edited in place, "
+            "so no diff was possible; set the level with --as"
+        )
     ot, nt = visible_text(old_body), visible_text(new_body)
     if ot == nt:
         return "patch", "visible text identical; only markup/styling changed"
@@ -239,9 +250,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--note", default="", help="why this snapshot was taken")
     ap.add_argument("--no-commit", action="store_true")
-    ap.add_argument("--allow-empty", action="store_true",
-                    help="record a changelog entry and commit even when nothing changed")
-    ap.add_argument("--push", action="store_true", help="push to origin after committing")
+    ap.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="record a changelog entry and commit even when nothing changed",
+    )
+    ap.add_argument(
+        "--push", action="store_true", help="push to origin after committing"
+    )
     ap.add_argument(
         "--as",
         dest="force_level",
@@ -256,7 +272,9 @@ def main():
     prev = load_manifest()["posts"]
     entries = all_entries()
     if not entries:
-        sys.exit("feed returned no posts — refusing to snapshot (would look like a wipe)")
+        sys.exit(
+            "feed returned no posts — refusing to snapshot (would look like a wipe)"
+        )
 
     # Key by post id, never by slug. Slugs are derived from the URL and are not a
     # safe primary key: two feed entries reducing to the same slug would silently
@@ -281,7 +299,9 @@ def main():
         if slug in slug_owner:
             # Two live posts sharing a slug: disambiguate on disk by id so neither
             # file is lost, and say so loudly.
-            print(f"warning: slug {slug!r} used by posts {slug_owner[slug]} and {rec['id']}")
+            print(
+                f"warning: slug {slug!r} used by posts {slug_owner[slug]} and {rec['id']}"
+            )
             slug = f"{slug}--{rec['id']}"
             rec["slug"] = slug
         slug_owner[slug] = rec["id"]
@@ -290,14 +310,21 @@ def main():
         # Read the previous body from its OLD path before anything is overwritten;
         # a moved post lives under a different filename.
         old_path = POSTS / f"{(old or {}).get('slug', slug)}.html"
-        old_body = old_path.read_text(encoding="utf-8") if old and old_path.exists() else None
+        old_body = (
+            old_path.read_text(encoding="utf-8") if old and old_path.exists() else None
+        )
 
         (POSTS / f"{slug}.html").write_text(body, encoding="utf-8")
         if old is None:
             rec["version"] = FIRST_VERSION
             rec["version_history"] = [
-                {"version": FIRST_VERSION, "date": now, "level": "initial",
-                 "reason": "first snapshot", "note": args.note or ""}
+                {
+                    "version": FIRST_VERSION,
+                    "date": now,
+                    "level": "initial",
+                    "reason": "first snapshot",
+                    "note": args.note or "",
+                }
             ]
             added.append(rec)
         else:
@@ -307,8 +334,13 @@ def main():
                 # Post predates versioning: record the baseline so history is
                 # never empty and v1.0.0 has a date attached.
                 rec["version_history"].append(
-                    {"version": rec["version"], "date": now, "level": "baseline",
-                     "reason": "version tracking introduced", "note": ""}
+                    {
+                        "version": rec["version"],
+                        "date": now,
+                        "level": "baseline",
+                        "reason": "version tracking introduced",
+                        "note": "",
+                    }
                 )
             url_moved = old.get("url") != rec["url"]
             body_changed = old.get("sha256") != rec["sha256"]
@@ -348,7 +380,9 @@ def main():
                         "level": level,
                         "reason": reason,
                         "bytes": [old.get("bytes"), rec["bytes"]],
-                        "url_changed": [old.get("url"), rec["url"]] if url_moved else None,
+                        "url_changed": (
+                            [old.get("url"), rec["url"]] if url_moved else None
+                        ),
                         "markers_changed": marker_delta(old, rec) or None,
                         "note": args.note or "",
                     }
@@ -413,16 +447,24 @@ def main():
                 )
             lines.append(bit)
     if redated:
-        lines.append("\n**Re-dated** (publication date changed; body and URL unchanged)\n")
+        lines.append(
+            "\n**Re-dated** (publication date changed; body and URL unchanged)\n"
+        )
         for rec, old in redated:
-            lines.append(f"- `{rec['slug']}` — {old.get('published','?')[:10]} "
-                         f"&rarr; {rec['published'][:10]}")
+            lines.append(
+                f"- `{rec['slug']}` — {old.get('published','?')[:10]} "
+                f"&rarr; {rec['published'][:10]}"
+            )
     if moved:
-        lines.append("\n**Moved** (old URL is now dead — Blogger never releases a slug)\n")
+        lines.append(
+            "\n**Moved** (old URL is now dead — Blogger never releases a slug)\n"
+        )
         for rec, old in moved:
             lines.append(f"- `{rec['title'][:60]}` — `{old['slug']}` → `{rec['slug']}`")
     if removed:
-        lines.append("\n**No longer published** (drafted or deleted; file kept in `posts/`)\n")
+        lines.append(
+            "\n**No longer published** (drafted or deleted; file kept in `posts/`)\n"
+        )
         lines += [f"- `{r['slug']}` — {r['title']}" for r in removed]
     if not (added or changed or removed or moved or bumped or redated):
         lines.append("\nNo changes.")
@@ -437,10 +479,14 @@ def main():
         f"->{len(moved)} moved | ~{len(redated)} re-dated | -{len(removed)} unpublished"
     )
     for rec, old in redated:
-        print(f"  d  {rec['slug']}: {old.get('published','?')[:10]} -> {rec['published'][:10]}")
+        print(
+            f"  d  {rec['slug']}: {old.get('published','?')[:10]} -> {rec['published'][:10]}"
+        )
     for rec, old, level, reason in bumped:
-        print(f"  v {rec['slug']}: {old.get('version', FIRST_VERSION)} -> "
-              f"{rec['version']} ({level}) — {reason}")
+        print(
+            f"  v {rec['slug']}: {old.get('version', FIRST_VERSION)} -> "
+            f"{rec['version']} ({level}) — {reason}"
+        )
     for rec, old in moved:
         print("  ->", old["slug"], "=>", rec["slug"])
     for r in added:
@@ -461,7 +507,11 @@ def main():
         msg += f"\n\n{args.note}"
     subprocess.run(["git", "add", "-A"], cwd=ROOT, check=True)
     r = subprocess.run(
-        ["git", "commit", "-m", msg], cwd=ROOT, capture_output=True, text=True
+        ["git", "commit", "-m", msg],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     print(r.stdout.strip() or r.stderr.strip())
 
@@ -471,34 +521,66 @@ def main():
         # push is rejected and rebasing conflicts on every meta/*.json at once —
         # ~70 files in the first real collision. Rebase before pushing so the
         # common case resolves itself.
-        f = subprocess.run(["git", "fetch", "-q", "origin"], cwd=ROOT,
-                           capture_output=True, text=True)
+        subprocess.run(
+            ["git", "fetch", "-q", "origin"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         # Compare against the branch's actual upstream. origin/HEAD is often
         # unset on a clone, and the first version of this check silently
         # returned nothing and skipped the rebase it existed to perform.
-        branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                                cwd=ROOT, capture_output=True,
-                                text=True).stdout.strip() or "main"
+        branch = (
+            subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout.strip()
+            or "main"
+        )
         behind = subprocess.run(
             ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
-            cwd=ROOT, capture_output=True, text=True).stdout.strip()
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
         if behind and behind != "0":
             print(f"remote moved on by {behind} commit(s) — rebasing first")
-            r = subprocess.run(["git", "pull", "--rebase", "origin", branch],
-                               cwd=ROOT, capture_output=True, text=True)
+            r = subprocess.run(
+                ["git", "pull", "--rebase", "origin", branch],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             if r.returncode != 0:
                 # Both sides snapshotted the same live blog, so the conflict is
                 # not a disagreement about content. Do not guess: abort cleanly
                 # and tell the operator the one-line recovery.
-                subprocess.run(["git", "rebase", "--abort"], cwd=ROOT,
-                               capture_output=True, text=True)
-                print("rebase conflicted and was aborted — nothing was pushed.\n"
-                      "Both commits describe the same live blog, so the fix is\n"
-                      "  git reset --hard origin/<branch> && python3 tools/snapshot.py --push\n"
-                      "which re-captures from the feed on top of the remote.")
+                subprocess.run(
+                    ["git", "rebase", "--abort"],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                print(
+                    "rebase conflicted and was aborted — nothing was pushed.\n"
+                    "Both commits describe the same live blog, so the fix is\n"
+                    "  git reset --hard origin/<branch> && python3 tools/snapshot.py --push\n"
+                    "which re-captures from the feed on top of the remote."
+                )
                 return
         p = subprocess.run(
-            ["git", "push", "origin", "HEAD"], cwd=ROOT, capture_output=True, text=True
+            ["git", "push", "origin", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         print(p.stderr.strip() or p.stdout.strip())
 

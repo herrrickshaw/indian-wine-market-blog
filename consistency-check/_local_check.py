@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Run STATIC_RULES against local out/*.html files (not yet published)."""
-import sys, os, json, subprocess
+
+import json
+import os
+import subprocess
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 from checks import STATIC_RULES
 
@@ -17,32 +22,39 @@ while((m=re.exec(html))){ i++;
 console.log(JSON.stringify(bad));
 """
 
+
 def js_syntax_errors(path):
     script = "/tmp/_syntax_check.js"
     with open(script, "w") as f:
         f.write(NODE_SYNTAX)
-    out = subprocess.run(["node", script, path], capture_output=True, text=True).stdout.strip()
+    out = subprocess.run(
+        ["node", script, path], capture_output=True, text=True, check=False
+    ).stdout.strip()
     try:
         return json.loads(out)
-    except Exception:
+    except Exception:  # noqa: BLE001 -- malformed node output should not abort
         return []
+
 
 def main():
     ok_all = True
     for path in sys.argv[1:]:
-        body = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as fh:
+            body = fh.read()
         errs = js_syntax_errors(path)
         print("===", path)
         for name, sev, fn in STATIC_RULES:
             try:
                 ok, detail = fn(body=body, node_check=errs)
-            except Exception as ex:
+            # a crashing rule counts as a fail, not an abort
+            except Exception as ex:  # noqa: BLE001
                 ok, detail = False, f"rule error: {type(ex).__name__}: {ex}"
             status = "OK" if ok else "FAIL"
             if not ok:
                 ok_all = False
             print(f"  [{status}] {sev} {name}: {detail}")
     sys.exit(0 if ok_all else 1)
+
 
 if __name__ == "__main__":
     main()
