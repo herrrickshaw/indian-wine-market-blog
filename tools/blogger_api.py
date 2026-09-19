@@ -25,6 +25,7 @@ Exit codes:
     2  transient failure — safe to retry soon
     3  per-blog daily write ceiling reached — retry tomorrow, not sooner
 """
+
 import argparse
 import html
 import http.server
@@ -118,8 +119,10 @@ def cmd_auth(args):
     try:
         srv = http.server.HTTPServer(("127.0.0.1", port), H)
     except OSError as e:
-        sys.exit(f"cannot bind port {port} ({e}) — pass --port with a free one, "
-                 f"and register that exact URI if this is a Web client")
+        sys.exit(
+            f"cannot bind port {port} ({e}) — pass --port with a free one, "
+            f"and register that exact URI if this is a Web client"
+        )
     redirect = f"http://127.0.0.1:{port}"
     if kind == "web":
         print("This is a WEB OAuth client. Before continuing, add this EXACT URI")
@@ -127,15 +130,23 @@ def cmd_auth(args):
         print(f"    {redirect}\n")
         print("  https://console.cloud.google.com/apis/credentials\n")
         input("Press Enter once saved (Google can take ~30s to apply it)... ")
-    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
-        "client_id": cid, "redirect_uri": redirect, "response_type": "code",
-        "scope": SCOPE, "access_type": "offline", "prompt": "consent", "state": state,
-    })
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(
+        {
+            "client_id": cid,
+            "redirect_uri": redirect,
+            "response_type": "code",
+            "scope": SCOPE,
+            "access_type": "offline",
+            "prompt": "consent",
+            "state": state,
+        }
+    )
     print("Open this URL and sign in as the account that is ADMIN on the blog:\n")
     print("  " + auth_url + "\n")
+    # the URL is already printed above either way
     try:
         webbrowser.open(auth_url)
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
     threading.Thread(target=srv.handle_request, daemon=True).start()
     for _ in range(300):
@@ -148,10 +159,16 @@ def cmd_auth(args):
     if "code" not in got:
         sys.exit(f"no authorisation code returned: {got}")
 
-    tok = _form("https://oauth2.googleapis.com/token", {
-        "code": got["code"], "client_id": cid, "client_secret": csec,
-        "redirect_uri": redirect, "grant_type": "authorization_code",
-    })
+    tok = _form(
+        "https://oauth2.googleapis.com/token",
+        {
+            "code": got["code"],
+            "client_id": cid,
+            "client_secret": csec,
+            "redirect_uri": redirect,
+            "grant_type": "authorization_code",
+        },
+    )
     if "refresh_token" not in tok:
         sys.exit("no refresh_token returned — revoke prior access and retry")
     SECRETS.mkdir(parents=True, exist_ok=True)
@@ -170,10 +187,15 @@ def access_token():
         sys.exit("not authorised — run: blogger_api.py auth")
     cid, csec, _ = _client()
     rt = json.loads(TOKEN_FILE.read_text())["refresh_token"]
-    tok = _form("https://oauth2.googleapis.com/token", {
-        "client_id": cid, "client_secret": csec,
-        "refresh_token": rt, "grant_type": "refresh_token",
-    })
+    tok = _form(
+        "https://oauth2.googleapis.com/token",
+        {
+            "client_id": cid,
+            "client_secret": csec,
+            "refresh_token": rt,
+            "grant_type": "refresh_token",
+        },
+    )
     _access["token"] = tok["access_token"]
     _access["expires"] = time.time() + int(tok.get("expires_in", 3600))
     return _access["token"]
@@ -187,9 +209,13 @@ def api(path, data=None, method="GET"):
     while delay <= MAX_BACKOFF_SECONDS:
         try:
             return _req(
-                url, data=data, method=method,
-                headers={"Authorization": f"Bearer {access_token()}",
-                         "Content-Type": "application/json"},
+                url,
+                data=data,
+                method=method,
+                headers={
+                    "Authorization": f"Bearer {access_token()}",
+                    "Content-Type": "application/json",
+                },
             )
         except urllib.error.HTTPError as e:
             detail = e.read().decode()[:300]
@@ -231,8 +257,12 @@ def cmd_whoami(_args):
     b = api(f"/blogs/{BLOG_ID}")
     print(f"blog   : {b['name']}")
     print(f"url    : {b['url']}")
-    print(f"posts  : {b['posts']['totalItems']}   pages: {b.get('pages',{}).get('totalItems','?')}")
-    print("auth   : OK (a write scope was granted; role must be Admin to edit others' posts)")
+    print(
+        f"posts  : {b['posts']['totalItems']}   pages: {b.get('pages',{}).get('totalItems','?')}"
+    )
+    print(
+        "auth   : OK (a write scope was granted; role must be Admin to edit others' posts)"
+    )
 
 
 def cmd_get(args):
@@ -258,7 +288,9 @@ def _flatten_html(raw, limit=None):
     re-renders (re-encoding typographic characters as numeric entities, and
     with tag boundaries in different places) must be flattened the same way
     or a byte-for-byte 'needle in out' check fails on identical content."""
-    text = re.sub(r"<(script|style)\b[^>]*>[\s\S]*?</\1>", " ", raw, flags=re.I)
+    text = re.sub(
+        r"<(script|style)\b[^>]*>[\s\S]*?</\1>", " ", raw, flags=re.IGNORECASE
+    )
     text = re.sub(r"<[^>]+>", " ", text)
     text = html.unescape(re.sub(r"\s+", " ", text).strip())
     return text[:limit] if limit else text
@@ -275,7 +307,10 @@ def verify_live(url, needle=None, absent=None):
     would otherwise make a literal substring search fail."""
     bust = f"{url}?cb={secrets.randbelow(10**6)}"
     out = subprocess.run(
-        ["curl", "-s", "-A", "Mozilla/5.0", bust], capture_output=True, text=True
+        ["curl", "-s", "-A", "Mozilla/5.0", bust],
+        capture_output=True,
+        text=True,
+        check=False,
     ).stdout
     if not out:
         return False, "empty response"
@@ -294,8 +329,10 @@ def verify_stored(content, probe):
     verify_live -- it proves the write landed, not that the page renders -- so
     it is used only when the live fetch returned nothing, and says so."""
     if _flatten_html(probe) in _flatten_html(content or ""):
-        return True, (f"via API, public fetch unavailable from this host "
-                      f"({len(content or ''):,} bytes stored)")
+        return True, (
+            f"via API, public fetch unavailable from this host "
+            f"({len(content or ''):,} bytes stored)"
+        )
     return False, "stored content does not contain the expected text"
 
 
@@ -346,9 +383,15 @@ def cmd_update(args):
     if args.title:
         print(f"  title: {p['title']!r}\n      -> {args.title!r}")
     try:
-        ok = do_update(p["id"], p["url"], title, body,
-                       published=p.get("published"), labels=p.get("labels"),
-                       dry_run=args.dry_run)
+        ok = do_update(
+            p["id"],
+            p["url"],
+            title,
+            body,
+            published=p.get("published"),
+            labels=p.get("labels"),
+            dry_run=args.dry_run,
+        )
     except Ceiling as e:
         print(f"daily write ceiling reached: {e}")
         sys.exit(3)
@@ -377,9 +420,11 @@ def cmd_insert(args):
     responding under load; posts.insert returns a status code."""
     body = pathlib.Path(args.file).read_text(encoding="utf-8")
     if args.dry_run:
-        print(f"DRY RUN — would insert {len(body):,} bytes"
-              f"\n  title : {args.title}"
-              f"\n  status: {'DRAFT' if args.draft else 'LIVE'}")
+        print(
+            f"DRY RUN — would insert {len(body):,} bytes"
+            f"\n  title : {args.title}"
+            f"\n  status: {'DRAFT' if args.draft else 'LIVE'}"
+        )
         return
     payload = {"kind": "blogger#post", "title": args.title, "content": body}
     q = "?isDraft=true" if args.draft else ""
@@ -407,13 +452,18 @@ def cmd_page(args):
     (see DESIGN_LOG 2026-08-07)."""
     body = pathlib.Path(args.file).read_text(encoding="utf-8")
     if args.dry_run:
-        print(f"DRY RUN — would {'update' if args.id else 'create'} page "
-              f"{len(body):,} bytes\n  title: {args.title}")
+        print(
+            f"DRY RUN — would {'update' if args.id else 'create'} page "
+            f"{len(body):,} bytes\n  title: {args.title}"
+        )
         return
     payload = {"kind": "blogger#page", "title": args.title, "content": body}
     if args.id:
-        res = api(f"/blogs/{BLOG_ID}/pages/{args.id}",
-                  data={**payload, "id": args.id}, method="PUT")
+        res = api(
+            f"/blogs/{BLOG_ID}/pages/{args.id}",
+            data={**payload, "id": args.id},
+            method="PUT",
+        )
     else:
         res = api(f"/blogs/{BLOG_ID}/pages", data=payload, method="POST")
     print(f"page id={res['id']}")
@@ -452,45 +502,65 @@ def cmd_bulk(args):
             print(f"    skip: {err}")
             continue
         try:
-            ok = do_update(p["id"], p["url"], p["title"],
-                           path.read_text(encoding="utf-8"),
-                           published=p.get("published"), labels=p.get("labels"),
-                           dry_run=args.dry_run)
+            ok = do_update(
+                p["id"],
+                p["url"],
+                p["title"],
+                path.read_text(encoding="utf-8"),
+                published=p.get("published"),
+                labels=p.get("labels"),
+                dry_run=args.dry_run,
+            )
         except Ceiling as err:
             print(f"\ndaily write ceiling reached after {done} writes: {err}")
             print("retry tomorrow — backoff will not clear this")
             sys.exit(3)
         done += ok
-        failed += (not ok)
+        failed += not ok
         time.sleep(WRITE_GAP_SECONDS)
     print(f"\n{done} updated, {failed} failed")
     sys.exit(0 if not failed else 2)
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("auth")
-    a.add_argument("--port", type=int, default=0,
-                   help=f"loopback port for the OAuth callback (default {DEFAULT_PORT})")
+    a.add_argument(
+        "--port",
+        type=int,
+        default=0,
+        help=f"loopback port for the OAuth callback (default {DEFAULT_PORT})",
+    )
     a.set_defaults(fn=cmd_auth)
     sub.add_parser("whoami").set_defaults(fn=cmd_whoami)
 
-    g = sub.add_parser("get"); g.add_argument("--slug", required=True)
-    g.add_argument("--out"); g.set_defaults(fn=cmd_get)
+    g = sub.add_parser("get")
+    g.add_argument("--slug", required=True)
+    g.add_argument("--out")
+    g.set_defaults(fn=cmd_get)
 
-    u = sub.add_parser("update"); u.add_argument("--slug")
+    u = sub.add_parser("update")
+    u.add_argument("--slug")
     u.add_argument("--id", help="post id; use when two live posts share a slug")
-    u.add_argument("--file", required=True); u.add_argument("--dry-run", action="store_true")
-    u.add_argument("--title", help="also change the post title (the URL slug is fixed and will not change)")
+    u.add_argument("--file", required=True)
+    u.add_argument("--dry-run", action="store_true")
+    u.add_argument(
+        "--title",
+        help="also change the post title (the URL slug is fixed and will not change)",
+    )
     u.set_defaults(fn=cmd_update)
 
     d = sub.add_parser("delete", help="permanently delete a live post")
     d.add_argument("--slug")
     d.add_argument("--id", help="post id; use when two live posts share a slug")
-    d.add_argument("--yes", action="store_true",
-                   help="actually delete (default is a dry-run preview only)")
+    d.add_argument(
+        "--yes",
+        action="store_true",
+        help="actually delete (default is a dry-run preview only)",
+    )
     d.set_defaults(fn=cmd_delete)
 
     i = sub.add_parser("insert", help="create a new post from an HTML file")
@@ -501,14 +571,18 @@ def main():
     i.set_defaults(fn=cmd_insert)
 
     pg = sub.add_parser("page", help="create or update a Blogger page")
-    pg.add_argument("--file", required=True); pg.add_argument("--title", required=True)
+    pg.add_argument("--file", required=True)
+    pg.add_argument("--title", required=True)
     pg.add_argument("--id", help="update this page instead of creating one")
-    pg.add_argument("--dry-run", action="store_true"); pg.set_defaults(fn=cmd_page)
+    pg.add_argument("--dry-run", action="store_true")
+    pg.set_defaults(fn=cmd_page)
     sub.add_parser("pages", help="list pages").set_defaults(fn=cmd_pages)
 
-    b = sub.add_parser("bulk"); b.add_argument("--manifest", required=True)
+    b = sub.add_parser("bulk")
+    b.add_argument("--manifest", required=True)
     b.add_argument("--limit", type=int, default=0)
-    b.add_argument("--dry-run", action="store_true"); b.set_defaults(fn=cmd_bulk)
+    b.add_argument("--dry-run", action="store_true")
+    b.set_defaults(fn=cmd_bulk)
 
     args = ap.parse_args()
     if not BLOG_ID or not BLOG_URL:

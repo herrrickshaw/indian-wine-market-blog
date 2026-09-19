@@ -34,6 +34,7 @@ This script does not verify facts against any primary source; it only tells
 you what this blog has already said, so a draft doesn't repeat, contradict,
 or omit something the archive already knows.
 """
+
 import argparse
 import glob
 import html
@@ -60,7 +61,10 @@ PCT_RE = re.compile(r"\b\d{1,3}(?:\.\d+)?%")
 # \d(?:[\d,]*\d)? requires the match to start and end on an actual digit, so
 # "Rs," alone can no longer satisfy it via the comma in [\d,]+ (a real bug
 # caught testing this script against its own first output, not in review).
-MONEY_RE = re.compile(r"(?:₹|Rs\.?\s?|\$)\s?\d(?:[\d,]*\d)?(?:\.\d+)?\s?(?:cr(?:ore)?s?|lakh|crore|bn|mn)?", re.I)
+MONEY_RE = re.compile(
+    r"(?:₹|Rs\.?\s?|\$)\s?\d(?:[\d,]*\d)?(?:\.\d+)?\s?(?:cr(?:ore)?s?|lakh|crore|bn|mn)?",
+    re.IGNORECASE,
+)
 
 
 def is_specific_enough(num_str):
@@ -71,7 +75,12 @@ def is_specific_enough(num_str):
 
 
 def strip_tags(html_text):
-    text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html_text, flags=re.S | re.I)
+    text = re.sub(
+        r"<(script|style)[^>]*>.*?</\1>",
+        " ",
+        html_text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
     text = re.sub(r"<[^>]+>", " ", text)
     return html.unescape(re.sub(r"\s+", " ", text))
 
@@ -95,7 +104,7 @@ def find_term(term, archive, exclude_slug=None):
         idx = text.lower().find(t)
         if idx == -1:
             continue
-        ctx = text[max(0, idx - 60): idx + len(term) + 60].strip()
+        ctx = text[max(0, idx - 60) : idx + len(term) + 60].strip()
         hits.append((slug, ctx))
     return hits
 
@@ -120,9 +129,19 @@ def auto_terms(text):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("draft", help="path to the out/ draft HTML file")
-    ap.add_argument("--terms", help="comma-separated entities/molecules/companies to check")
-    ap.add_argument("--auto", action="store_true", help="extract candidate terms from the draft instead")
-    ap.add_argument("--numbers", action="store_true", help="also cross-check standalone %% and currency figures")
+    ap.add_argument(
+        "--terms", help="comma-separated entities/molecules/companies to check"
+    )
+    ap.add_argument(
+        "--auto",
+        action="store_true",
+        help="extract candidate terms from the draft instead",
+    )
+    ap.add_argument(
+        "--numbers",
+        action="store_true",
+        help="also cross-check standalone %% and currency figures",
+    )
     args = ap.parse_args()
 
     draft_path = pathlib.Path(args.draft)
@@ -136,9 +155,11 @@ def main():
         terms = [t.strip() for t in args.terms.split(",") if t.strip()]
     elif args.auto:
         terms = auto_terms(draft_text)
-        print(f"--auto extracted {len(terms)} candidate terms (crude -- review, don't trust):\n")
+        print(
+            f"--auto extracted {len(terms)} candidate terms (crude -- review, don't trust):\n"
+        )
     else:
-        sys.exit("pass --terms \"A,B,C\" or --auto")
+        sys.exit('pass --terms "A,B,C" or --auto')
 
     archive = load_archive()
     print(f"checking against {len(archive)} posts in {POSTS}\n")
@@ -152,7 +173,9 @@ def main():
             zero.append(term)
 
     if found:
-        print("=== already covered elsewhere on this blog (check for consistency, not just novelty) ===")
+        print(
+            "=== already covered elsewhere on this blog (check for consistency, not just novelty) ==="
+        )
         for term, hits in found:
             print(f"\n  {term}  ({len(hits)} post{'s' if len(hits) != 1 else ''})")
             for slug, ctx in hits[:3]:
@@ -164,7 +187,11 @@ def main():
         print("\n=== zero matches anywhere in posts/ ===")
         for term in zero:
             variants = VARIANT_HINTS.get(term.lower(), [])
-            note = f"  -- known variant spelling(s) to try: {', '.join(variants)}" if variants else ""
+            note = (
+                f"  -- known variant spelling(s) to try: {', '.join(variants)}"
+                if variants
+                else ""
+            )
             print(f"  {term}{note}")
         print(
             "\n  A zero match is either a genuinely new entity (fine) or a spelling/"
@@ -175,16 +202,22 @@ def main():
 
     if args.numbers:
         print("\n=== standalone %/currency figures in the draft, cross-checked ===")
-        nums = set(PCT_RE.findall(draft_text)) | set(m.strip() for m in MONEY_RE.findall(draft_text))
+        nums = set(PCT_RE.findall(draft_text)) | {
+            m.strip() for m in MONEY_RE.findall(draft_text)
+        }
         nums = {n for n in nums if is_specific_enough(n)}
         for n in sorted(nums):
             hits = find_term(n, archive, exclude_slug=draft_slug)
             if hits:
-                print(f"\n  {n}  appears in {len(hits)} other post(s) -- confirm it's the same claim, not reused out of context:")
+                print(
+                    f"\n  {n}  appears in {len(hits)} other post(s) -- confirm it's the same claim, not reused out of context:"
+                )
                 for slug, ctx in hits[:2]:
                     print(f"    {slug}: …{ctx}…")
 
-    print(f"\n{len(found)} terms already covered, {len(zero)} zero-match. Review before publish, not after.")
+    print(
+        f"\n{len(found)} terms already covered, {len(zero)} zero-match. Review before publish, not after."
+    )
     return 0
 
 
