@@ -12,11 +12,12 @@ Severity:
   MAJOR    wrong or misattributed information
   MINOR    house-style / consistency drift
 """
+
 import re
 
 BLOCKER, MAJOR, MINOR = "BLOCKER", "MAJOR", "MINOR"
 
-_COMMENT_RE = re.compile(r'<!--.*?-->|/\*.*?\*/', re.S)
+_COMMENT_RE = re.compile(r"<!--.*?-->|/\*.*?\*/", re.DOTALL)
 
 
 def _declares_dark(body):
@@ -25,17 +26,18 @@ def _declares_dark(body):
     prefers-color-scheme (e.g. to explain why it was deliberately left out)
     doesn't trip a false BLOCKER. Caught on quarterly-reportage-4034-scheme,
     whose own explanatory comment contains the literal phrase."""
-    stripped = _COMMENT_RE.sub('', body)
-    return ('prefers-color-scheme' in stripped) or ('data-theme="dark"' in stripped)
+    stripped = _COMMENT_RE.sub("", body)
+    return ("prefers-color-scheme" in stripped) or ('data-theme="dark"' in stripped)
+
 
 # --------------------------------------------------------------------------
 # Static rules: run against the post's rendered HTML (no browser needed).
 # Each returns (ok, detail).
 # --------------------------------------------------------------------------
 
-DISCLAIMER_RE = re.compile(r'data-gs-ai-disclosure-v1')
-SCRIPT_RE = re.compile(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>')
-INVERTED_MQ = '@media not all and (prefers-color-scheme'
+DISCLAIMER_RE = re.compile(r"data-gs-ai-disclosure-v1")
+SCRIPT_RE = re.compile(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>")
+INVERTED_MQ = "@media not all and (prefers-color-scheme"
 
 
 def _scripts(body):
@@ -43,7 +45,7 @@ def _scripts(body):
 
 
 def _strip_scripts(body):
-    return SCRIPT_RE.sub('', body)
+    return SCRIPT_RE.sub("", body)
 
 
 def r_disclaimer_not_in_script(body, **kw):
@@ -76,23 +78,28 @@ def r_dark_vars_locked(body, **kw):
     if not declares_dark:
         return True, "n/a (no dark palette)"
     # only a hazard if something actually consumes the vars
-    consumes = bool(re.search(r'var\(\s*--(surface|surface-alt|border|text|text-mut|ink|page-bg)\b', body))
+    consumes = bool(
+        re.search(
+            r"var\(\s*--(surface|surface-alt|border|text|text-mut|ink|page-bg)\b", body
+        )
+    )
     if not consumes:
         return True, "n/a (vars declared but never consumed)"
-    ok = 'gs-light-lock-v1' in body or bool(
-        re.search(r'--[a-zA-Z0-9-]+\s*:\s*[^;}]+!important', body))
+    ok = "gs-light-lock-v1" in body or bool(
+        re.search(r"--[a-zA-Z0-9-]+\s*:\s*[^;}]+!important", body)
+    )
     return ok, ("" if ok else "dark palette consumed with no !important light lock")
 
 
 def r_translate_widget(body, **kw):
     """Per-post Google Translate embed (site-wide placement is blocked in Blogger)."""
-    ok = 'google_translate_element' in body
+    ok = "google_translate_element" in body
     return ok, ("" if ok else "missing Google Translate widget")
 
 
 def r_index_link(body, **kw):
     """Every post carries the back-to-index nav link."""
-    ok = 'topnav-index-link' in body
+    ok = "topnav-index-link" in body
     return ok, ("" if ok else "missing All-Articles index link")
 
 
@@ -103,7 +110,7 @@ def r_bw_override(body, **kw):
     risky = _declares_dark(body)
     if not risky:
         return True, "n/a (no dark palette)"
-    ok = 'BW-OVERRIDE' in body or 'gs-light-lock-v1' in body
+    ok = "BW-OVERRIDE" in body or "gs-light-lock-v1" in body
     return ok, ("" if ok else "dark palette present with no BW-override / light lock")
 
 
@@ -117,17 +124,21 @@ def r_table_units_in_header(body, **kw):
     imports" or "FY2025-26, 10.35% CAGR". The original substring-search
     version flagged both alike, which misfired on 18 of 19 posts checked
     during a 2026-09-18 audit: their tables were fine, just descriptive."""
-    tds = re.findall(r'<td[^>]*>([\s\S]{0,120}?)</td>', body)
+    tds = re.findall(r"<td[^>]*>([\s\S]{0,120}?)</td>", body)
     if len(tds) < 12:
         return True, "n/a (few cells)"
     bare_unit = re.compile(
-        r'^\s*(₹|&#8377;|US\$|\$)?\s*[\d,.−-]+\s*'
-        r'(cr|crore|lakh|%|MT|LMT|MW|kg|bn|mn)\.?\s*'
-        r'(\([^)]{0,40}\))?\s*$', re.I)
-    hits = sum(1 for t in tds if bare_unit.match(re.sub(r'<[^>]+>', '', t).strip()))
+        r"^\s*(₹|&#8377;|US\$|\$)?\s*[\d,.−-]+\s*"
+        r"(cr|crore|lakh|%|MT|LMT|MW|kg|bn|mn)\.?\s*"
+        r"(\([^)]{0,40}\))?\s*$",
+        re.IGNORECASE,
+    )
+    hits = sum(1 for t in tds if bare_unit.match(re.sub(r"<[^>]+>", "", t).strip()))
     pct = hits / len(tds) * 100
     ok = pct <= 30
-    return ok, (f"{pct:.0f}% of {len(tds)} cells carry units" if not ok else f"{pct:.0f}%")
+    return ok, (
+        f"{pct:.0f}% of {len(tds)} cells carry units" if not ok else f"{pct:.0f}%"
+    )
 
 
 def r_scripts_parse(body, node_check, **kw):
@@ -141,28 +152,29 @@ def r_scripts_parse(body, node_check, **kw):
 def r_wpi_attribution(body, **kw):
     """WPI is published by the Office of the Economic Adviser, DPIIT - not MoSPI
     (which publishes CPI). Several posts had this wrong."""
-    mentions_wpi = re.search(r'\bWPI\b|Wholesale Price Index', body)
+    mentions_wpi = re.search(r"\bWPI\b|Wholesale Price Index", body)
     if not mentions_wpi:
         return True, "n/a"
-    bad = re.search(r'MoSPI[^<.]{0,40}Wholesale Price Index', body) or \
-          re.search(r'Wholesale Price Index[^<.]{0,50}MoSPI(?!\.)', body)
+    bad = re.search(r"MoSPI[^<.]{0,40}Wholesale Price Index", body) or re.search(
+        r"Wholesale Price Index[^<.]{0,50}MoSPI(?!\.)", body
+    )
     # allow the explicit corrective phrasing
-    if bad and re.search(r'not a MoSPI product|not by MoSPI|published by DPIIT', body):
+    if bad and re.search(r"not a MoSPI product|not by MoSPI|published by DPIIT", body):
         bad = None
     return (not bad), ("WPI attributed to MoSPI" if bad else "")
 
 
 STATIC_RULES = [
-    ("js-parses",              BLOCKER, r_scripts_parse),
+    ("js-parses", BLOCKER, r_scripts_parse),
     ("no-disclaimer-in-script", BLOCKER, r_disclaimer_not_in_script),
     ("no-inverted-media-query", BLOCKER, r_no_inverted_media_query),
-    ("dark-vars-locked",       BLOCKER, r_dark_vars_locked),
-    ("wpi-attribution",        MAJOR,   r_wpi_attribution),
-    ("disclaimer-present",     MAJOR,   r_disclaimer_present),
-    ("translate-widget",       MINOR,   r_translate_widget),
-    ("index-link",             MINOR,   r_index_link),
-    ("bw-override",            MINOR,   r_bw_override),
-    ("table-units-in-header",  MINOR,   r_table_units_in_header),
+    ("dark-vars-locked", BLOCKER, r_dark_vars_locked),
+    ("wpi-attribution", MAJOR, r_wpi_attribution),
+    ("disclaimer-present", MAJOR, r_disclaimer_present),
+    ("translate-widget", MINOR, r_translate_widget),
+    ("index-link", MINOR, r_index_link),
+    ("bw-override", MINOR, r_bw_override),
+    ("table-units-in-header", MINOR, r_table_units_in_header),
 ]
 
 # --------------------------------------------------------------------------

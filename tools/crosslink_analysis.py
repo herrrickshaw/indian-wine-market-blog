@@ -18,6 +18,7 @@ extraction) between posts that currently have no link between them at all.
     python3 tools/crosslink_analysis.py                  # human-readable report
     python3 tools/crosslink_analysis.py --json out.json  # machine-readable
 """
+
 import argparse
 import collections
 import glob
@@ -34,10 +35,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # stays in sync with whatever blog is actually configured -- see blogger_api.py.
 try:
     import blogger_api as _B
+
     _BLOG_URL = _B.BLOG_URL
 except SystemExit:
     _BLOG_URL = None
-_BLOG_URL = _BLOG_URL or os.environ.get("WINE_BLOG_URL") or "https://REPLACE-ME.blogspot.com"
+_BLOG_URL = (
+    _BLOG_URL or os.environ.get("WINE_BLOG_URL") or "https://REPLACE-ME.blogspot.com"
+)
 
 # A dated post URL: /2026/09/some-slug.html -- what a genuine cross-link looks like.
 # Slug charset includes underscores: on masaladeutsch, Blogger appended "_<digits>"
@@ -46,15 +50,22 @@ _BLOG_URL = _BLOG_URL or os.environ.get("WINE_BLOG_URL") or "https://REPLACE-ME.
 # silently missed every link to or from such a post -- it misreported as orphaned
 # when it was not. Kept broad here in case this blog hits the same thing.
 POST_LINK_RE = re.compile(
-    r'href="' + re.escape(_BLOG_URL) + r'/(\d{4})/(\d{2})/([a-z0-9_-]+)\.html(?:#[^"]*)?"',
-    re.I,
+    r'href="'
+    + re.escape(_BLOG_URL)
+    + r'/(\d{4})/(\d{2})/([a-z0-9_-]+)\.html(?:#[^"]*)?"',
+    re.IGNORECASE,
 )
 # Boilerplate destinations that don't count as editorial cross-links.
 NOISE_SLUGS = {"article-index-start-here"}
 
 
 def strip_tags_scripts(html_body):
-    return re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html_body, flags=re.S | re.I)
+    return re.sub(
+        r"<(script|style)[^>]*>.*?</\1>",
+        " ",
+        html_body,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
 
 
 def load_manifest():
@@ -94,8 +105,12 @@ def build_graph(by_slug):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", metavar="PATH")
-    ap.add_argument("--min-label-cluster", type=int, default=3,
-                     help="ignore labels with fewer than this many live posts")
+    ap.add_argument(
+        "--min-label-cluster",
+        type=int,
+        default=3,
+        help="ignore labels with fewer than this many live posts",
+    )
     ap.add_argument("--top", type=int, default=40, help="max rows per list section")
     args = ap.parse_args()
 
@@ -115,8 +130,8 @@ def main():
     orphans_out_only = sorted(s for s in all_slugs if out_deg[s] == 0 and in_deg[s] > 0)
     orphans_in_only = sorted(s for s in all_slugs if out_deg[s] > 0 and in_deg[s] == 0)
 
-    hubs_out = sorted(all_slugs, key=lambda s: -out_deg[s])[:args.top]
-    hubs_in = sorted(all_slugs, key=lambda s: -in_deg[s])[:args.top]
+    hubs_out = sorted(all_slugs, key=lambda s: -out_deg[s])[: args.top]
+    hubs_in = sorted(all_slugs, key=lambda s: -in_deg[s])[: args.top]
 
     total_edges = sum(out_deg.values())
     linked_pairs = set()
@@ -170,7 +185,11 @@ def main():
         "top_out_degree": [(s, out_deg[s]) for s in hubs_out],
         "top_in_degree": [(s, in_deg[s]) for s in hubs_in],
         "candidate_pairs": [
-            {"slugs": sorted(list(key)), "score": round(score, 3), "shared_labels": pair_labels[key]}
+            {
+                "slugs": sorted(key),
+                "score": round(score, 3),
+                "shared_labels": pair_labels[key],
+            }
             for key, score in ranked_candidates
         ],
     }
@@ -183,10 +202,12 @@ def main():
     print(f"posts considered: {report['posts_considered']}")
     print(f"content cross-link edges (directed): {report['total_content_link_edges']}")
     print(f"distinct linked pairs: {report['distinct_linked_pairs']}")
-    avg_out = report['total_content_link_edges'] / max(1, report['posts_considered'])
+    avg_out = report["total_content_link_edges"] / max(1, report["posts_considered"])
     print(f"average outbound content links per post: {avg_out:.2f}")
     print()
-    print(f"=== Orphans: zero outbound AND zero inbound content links ({len(orphans_both)}) ===")
+    print(
+        f"=== Orphans: zero outbound AND zero inbound content links ({len(orphans_both)}) ==="
+    )
     for s in orphans_both[: args.top]:
         print(f"  {s}")
     if len(orphans_both) > args.top:
@@ -202,17 +223,25 @@ def main():
     if len(orphans_in_only) > args.top:
         print(f"  ... and {len(orphans_in_only) - args.top} more")
     print()
-    print(f"=== Best-connected hubs, by outbound content links (top {min(args.top,10)}) ===")
+    print(
+        f"=== Best-connected hubs, by outbound content links (top {min(args.top,10)}) ==="
+    )
     for s, d in report["top_out_degree"][:10]:
         print(f"  {d:2d}  {s}")
     print()
-    print(f"=== Best-connected hubs, by inbound content links (top {min(args.top,10)}) ===")
+    print(
+        f"=== Best-connected hubs, by inbound content links (top {min(args.top,10)}) ==="
+    )
     for s, d in report["top_in_degree"][:10]:
         print(f"  {d:2d}  {s}")
     print()
-    print(f"=== Top candidate link opportunities (shared labels, currently unlinked) ===")
+    print(
+        "=== Top candidate link opportunities (shared labels, currently unlinked) ==="
+    )
     for c in report["candidate_pairs"][:30]:
-        print(f"  {c['score']:.3f}  {c['slugs'][0][:45]:47} <-> {c['slugs'][1][:45]:47} [{', '.join(c['shared_labels'])}]")
+        print(
+            f"  {c['score']:.3f}  {c['slugs'][0][:45]:47} <-> {c['slugs'][1][:45]:47} [{', '.join(c['shared_labels'])}]"
+        )
     return 0
 
 
