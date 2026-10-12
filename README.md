@@ -1,5 +1,9 @@
 # indian-wine-market-blog
 
+<!-- how-to-use-with-ai -->
+> **New here?** See [How to use this repo with AI (Claude, Gemini, ChatGPT)](HOW_TO_USE_WITH_AI.md) — clone it, paste it into an AI tool, and ask in plain English.
+
+
 Home for a dedicated blog on the Indian wine market — production, imports and
 tariffs, domestic market size, and the effect of trade deals such as the
 India&ndash;EU agreement on import duty (currently 150%, with a path to
