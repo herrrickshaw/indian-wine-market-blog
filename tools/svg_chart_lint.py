@@ -113,6 +113,14 @@ def _one_line_bbox(x, y, anchor, fs, bold, plain):
     return x0, x1, y, fs, plain
 
 
+def _length(value, font_size):
+    """SVG length -> user units. dy="1.2em" is the standard line-wrap idiom."""
+    v = value.strip()
+    if v.endswith("em"):
+        return float(v[:-2]) * font_size
+    return float(v[:-2] if v.endswith("px") else v)
+
+
 def text_lines(attrs, content, css_classes=None, font_size_default=11):
     """Return a list of (x0, x1, y, font_size, plain_text) -- one per line.
     A <text> with <tspan> children (the multi-line-wrap pattern) yields one
@@ -158,11 +166,11 @@ def text_lines(attrs, content, css_classes=None, font_size_default=11):
             if "font-weight" in t_attrs:
                 t_bold = t_attrs["font-weight"] in ("600", "700", "bold", "800", "900")
             if "dy" in t_attrs:
-                cur_y += float(t_attrs["dy"])
+                cur_y += _length(t_attrs["dy"], fs)
             elif "y" in t_attrs:
-                cur_y = float(t_attrs["y"])
+                cur_y = _length(t_attrs["y"], fs)
             if "x" in t_attrs or cur is None:
-                t_x = float(t_attrs["x"]) if "x" in t_attrs else x
+                t_x = _length(t_attrs["x"], fs) if "x" in t_attrs else x
                 cur = {"x": t_x, "y": cur_y, "parts": []}
                 lines.append(cur)
             text = TAG_RE.sub("", tm.group(2))
