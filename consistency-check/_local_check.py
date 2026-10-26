@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(__file__))
 from checks import STATIC_RULES
@@ -24,12 +25,20 @@ console.log(JSON.stringify(bad));
 
 
 def js_syntax_errors(path):
-    script = "/tmp/_syntax_check.js"
-    with open(script, "w") as f:
-        f.write(NODE_SYNTAX)
-    out = subprocess.run(
-        ["node", script, path], capture_output=True, text=True, check=False
-    ).stdout.strip()
+    # A private, randomly named temp file: a fixed /tmp name could be pre-created or
+    # swapped by another local user before node executes it (bandit B108).
+    fd, script = tempfile.mkstemp(prefix="_syntax_check_", suffix=".js")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(NODE_SYNTAX)
+        out = subprocess.run(
+            ["node", script, path], capture_output=True, text=True, check=False
+        ).stdout.strip()
+    finally:
+        try:
+            os.unlink(script)
+        except OSError:
+            pass
     try:
         return json.loads(out)
     except Exception:  # noqa: BLE001 -- malformed node output should not abort
