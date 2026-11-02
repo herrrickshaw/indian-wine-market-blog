@@ -1,86 +1,115 @@
-# indian-wine-market-blog
+# Indian wine market blog toolkit
 
-<!-- how-to-use-with-ai -->
-> **New here?** See [How to use this repo with AI (Claude, Gemini, ChatGPT)](HOW_TO_USE_WITH_AI.md) — clone it, paste it into an AI tool, and ask in plain English.
+Tooling and drafts for a dedicated blog on the Indian wine market: domestic production, imports and
+tariffs, market size, and the effect of trade deals such as the India&ndash;EU agreement on import duty
+(currently 150%, with a path to 20&ndash;30% once that deal is in force). It is not `masaladeutsch`, which
+covers Indian trade/energy/industrial policy broadly and already carries one wine-market post; this repo is
+for a blog that covers only this sector, in depth. Outputs are post HTML files in `out/` (drafts) and, once
+a blog exists, `posts/` + `meta/` snapshots of the live site.
 
+> Status: pre-launch. No Blogger blog exists yet, so nothing can publish or snapshot. The tooling was
+> ported from `blogger_writeups_code` and genericised. Figures in drafts are from secondary sources
+> (see Data sources); this is not investment or trade advice.
 
-Home for a dedicated blog on the Indian wine market — production, imports and
-tariffs, domestic market size, and the effect of trade deals such as the
-India&ndash;EU agreement on import duty (currently 150%, with a path to
-20&ndash;30% once that deal is in force). Not `masaladeutsch`: that blog
-covers Indian trade/energy/industrial policy broadly and already carries one
-wine-market post as a single topic among many; this repo is for a blog that
-covers only this sector, in depth.
+[How to use this repo with AI (Claude, Gemini, ChatGPT)](HOW_TO_USE_WITH_AI.md) - clone it, paste it into an
+AI tool, and ask in plain English.
 
-**Status: pre-launch.** No Blogger blog exists yet, so nothing can actually
-publish or snapshot. What exists is the tooling, ported from
-`blogger_writeups_code` and genericized — not reinvented — ready to point at
-a blog the moment one exists. Then (following the `masaladeutsch` /
-`blogger_writeups_code` split already used elsewhere in this account) this
-may still split into a public entry-page repo plus this one as the private
-version-history archive.
+## What it does
+- Publishes, updates and deletes posts through the Blogger API v3 (`tools/blogger_api.py`).
+- Snapshots the live blog into `posts/` + `meta/` and semver-classifies each change (`tools/snapshot.py`).
+- Checks a draft against the 10 house style rules (`consistency-check/_local_check.py`) and can repair
+  known defects in a post body (`consistency-check/fix.py`).
+- Lints inline SVG charts for label collisions and viewBox overflow (`tools/svg_chart_lint.py`).
+- Reports orphan posts / cross-links and de-duplicates a draft's claims against published posts.
+- Renders a post at phone width and reports horizontal overflow (`tools/mobile_check.py`).
 
-```
-out/                        drafts land here before publishing
-posts/<slug>.html           full post body, once snapshotted from live
-meta/<slug>.json            id, title, url, dates, labels, size, sha256
-CHANGELOG.md                one entry per snapshot
-templates/post-skeleton.html  starting skeleton for a new post (placeholders
-                               {{SITE_URL}} / {{SITE_INDEX_URL}} need filling
-                               in once the blog and its index page exist)
-tools/blogger_api.py        Blogger API v3 client — publish, update, snapshot
-tools/snapshot.py           pull the live blog into posts/ + meta/, commit
-tools/crosslink_analysis.py cross-link / orphan-post report across posts/
-tools/research_crosscheck.py  dedup a draft's claims against posts/ before publishing
-tools/svg_chart_lint.py     static SVG-chart bug lint (overflow, hidden text)
-tools/mobile_check.py       render a post at a phone viewport, report overflow
-                             (needs `playwright install chromium` once)
-consistency-check/checks.py + fix.py + _local_check.py
-                             the 10 house style rules, and an importable
-                             repair() for local file content
+## Quick start
+```bash
+git clone https://github.com/herrrickshaw/indian-wine-market-blog.git
+cd indian-wine-market-blog
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt pytest ruff
+python3 consistency-check/_local_check.py out/post-eu-fta-wine-tariff-cut.html   # needs node
 ```
 
-## Set up, once the blog exists
+## How it works
+Draft, check, publish, snapshot:
 
-1. Create the Blogger blog; note its numeric blog ID and URL.
-2. `export WINE_BLOG_ID=<id>` and `export WINE_BLOG_URL=<https://...>`
-   (or hardcode them in `tools/blogger_api.py`, matching the masaladeutsch original).
-3. OAuth is already set up for this Google account from masaladeutsch — the
-   Blogger API scope isn't per-blog, so `~/.config/market-secrets/blogger_client.json`
-   and `blogger_token.json` work as-is. See
-   `blogger_writeups_code/docs/BLOGGER_API_RUNBOOK.md` if that ever needs redoing.
-4. Fill in `templates/post-skeleton.html`'s `{{SITE_URL}}` / `{{SITE_INDEX_URL}}`
-   placeholders once there's a real index page to link to.
+| Stage | Module | Output |
+|---|---|---|
+| Draft | `templates/post-skeleton.html`, `templates/*.css` | `out/<draft>.html` |
+| Check | `consistency-check/checks.py` (rules), `_local_check.py` (CLI) | pass/fail per rule |
+| Repair | `consistency-check/repair.py` (pure), `fix.py` (fetch + browser verify) | corrected bodies in `consistency-check/fixes/` |
+| Lint charts | `tools/svg_chart_lint.py` | issue list / JSON |
+| Cross-check | `tools/research_crosscheck.py`, `tools/crosslink_analysis.py` | duplicate-claim / orphan reports |
+| Publish | `tools/blogger_api.py insert --file out/<draft>.html --title "..."` | live post |
+| Snapshot | `tools/snapshot.py` (I/O), `tools/versioning.py` (pure semver logic) | `posts/`, `meta/`, `CHANGELOG.md` |
 
-## How to run, once set up
+Design notes: every rule in `checks.py` came from a real defect on the original blog; pure logic
+(`repair.py`, `versioning.py`) is kept apart from network, subprocess and browser code so it can be tested
+offline. **Publish before you snapshot**: `snapshot.py` treats the live blog as the source of truth and will
+silently overwrite any local edit to `posts/*.html` that was never published.
 
-Draft into `out/`, run `python3 consistency-check/_local_check.py out/<draft>.html`,
-cross-check it against `posts/*.html` with
-`python3 tools/research_crosscheck.py --auto --numbers out/<draft>.html`,
-publish with `python3 tools/blogger_api.py insert --file out/<draft>.html --title "..."`,
-then `python3 tools/snapshot.py --note "..." --push` to pull it back into
-`posts/`/`meta/` and commit. **Publish before you snapshot** — snapshot.py
-treats the live blog as the source of truth and will silently overwrite any
-local edit to `posts/*.html` that was never published.
+Typical session:
+```bash
+python3 consistency-check/_local_check.py out/<draft>.html
+python3 tools/research_crosscheck.py --auto --numbers out/<draft>.html
+python3 tools/blogger_api.py insert --file out/<draft>.html --title "..."
+python3 tools/snapshot.py --note "..." --push
+```
 
-Deliberately not ported yet (masaladeutsch-specific content, or premature
-with zero posts): `apply_labels.py`'s topic taxonomy, `build_index_page.py`
-and the index-graph tooling, AdSense tooling, and assorted one-off historical
-fix scripts. Pull any of them over from `blogger_writeups_code` if and when
-this blog actually needs them.
+## Repository layout
+| Path | Purpose |
+|---|---|
+| `out/` | Drafts land here before publishing (one draft tracked: `post-eu-fta-wine-tariff-cut.html`) |
+| `posts/<slug>.html` | Full post bodies, once snapshotted from live |
+| `meta/<slug>.json` | id, title, url, dates, labels, size, sha256 per post |
+| `templates/` | `post-skeleton.html` (fill `{{SITE_URL}}` / `{{SITE_INDEX_URL}}`), site and research CSS |
+| `tools/` | Blogger client, snapshot, versioning, cross-link, cross-check, SVG lint, mobile check |
+| `consistency-check/` | House rules, local checker, repair functions and live-verify harness |
+| `tests/` | Offline pytest suite incl. golden characterisation of pre-refactor behaviour |
+| `CHANGELOG.md` | One entry per snapshot (none yet) |
 
 ## Data sources
+| Source | What is taken | Access route | Licence / caveat |
+|---|---|---|---|
+| IMARC Group, India Wine Market report | Market-size figures in earlier drafts | Secondary, via earlier drafts in `blogger_writeups_code` | Vendor estimates; verify before citing |
+| India&ndash;EU trade deal text | Import-duty schedule | Public text | Check final in-force schedule |
 
-No canonical data file exists yet — there is no automated data pipeline for
-this repo. Prior exploratory drafts in this account (see
-`blogger_writeups_code/out/post-indian-wine-market.html` and the published
-`a-million-wine-market-behind-150-wall` post on masaladeutsch) sourced
-figures from the IMARC Group's India Wine Market report and the
-India&ndash;EU trade deal text. Any future canonical dataset for this repo
-will be named here, with its authoritative location, per the account's
-new-repo checklist.
+No canonical data file exists yet and there is no automated data pipeline. Earlier exploratory drafts live in
+`blogger_writeups_code/out/post-indian-wine-market.html` and the published `a-million-wine-market-behind-150-wall`
+post on masaladeutsch.
 
-## Backup
+## Configuration
+| Variable / file | Meaning |
+|---|---|
+| `WINE_BLOG_ID`, `WINE_BLOG_URL` | Numeric Blogger blog ID and URL (or hardcode in `tools/blogger_api.py`) |
+| `~/.config/market-secrets/blogger_client.json`, `blogger_token.json` | OAuth client + token, shared with masaladeutsch (the Blogger scope is not per-blog) |
 
-GitHub is primary. No large artifacts yet, so no `market-data-artifacts`
-release is needed at this stage.
+Secrets are never committed (`.gitignore` blocks `*client_secret*`, `*blogger_client*`, `*token*`). See
+`blogger_writeups_code/docs/BLOGGER_API_RUNBOOK.md` if OAuth needs redoing. `tools/mobile_check.py` needs
+`playwright install chromium` once.
+
+## Testing
+```bash
+pytest -q          # 16 tests, offline; the node-based test skips if node is absent
+ruff check .
+```
+
+## Limitations and known issues
+- Pre-launch: no blog, so publish / snapshot paths are untested against a live API.
+- `fix.py` live verification needs a published blog and a headless browser; it is not covered by tests.
+- Deliberately not ported yet: `apply_labels.py` topic taxonomy, `build_index_page.py` and index-graph
+  tooling, AdSense tooling, and one-off historical fix scripts. Pull them from `blogger_writeups_code` if needed.
+- The disclosure paragraph in `consistency-check/fix.py` names the author and links to `/p/disclaimer.html`.
+- Once live this may split into a public entry-page repo plus a private version-history archive, mirroring
+  the `masaladeutsch` / `blogger_writeups_code` split.
+
+## Related repositories
+- `blogger_writeups_code` - origin of the ported tooling and the Blogger runbook.
+- `masaladeutsch` - the broader trade/energy blog this one is separate from.
+
+## Licence
+No licence file yet - all rights reserved.
+
+GitHub is primary for backup; there are no large artifacts yet, so no `market-data-artifacts` release is needed.
