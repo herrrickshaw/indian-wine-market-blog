@@ -12,6 +12,7 @@ import re
 
 from checks import DISCLAIMER_RE, INVERTED_MQ, SCRIPT_RE, STATIC_RULES
 
+
 def body_of(html):
     s = html.find("<div class='post-body'>")
     if s < 0:

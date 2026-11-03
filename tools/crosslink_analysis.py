@@ -184,20 +184,24 @@ def build_report(by_slug, out_links, min_cluster, top):
             linked_pairs.add(frozenset((s, t)))
 
     ranked = rank_candidates(by_slug, all_slugs, linked_pairs, min_cluster, top)
-    return {
-        "posts_considered": len(all_slugs),
-        "total_content_link_edges": sum(out_deg.values()),
-        "distinct_linked_pairs": len(linked_pairs),
-        "orphans_both_directions": orphans_both,
-        "orphans_no_outbound_only": orphans_out_only,
-        "orphans_no_inbound_only": orphans_in_only,
-        "top_out_degree": [(s, out_deg[s]) for s in hubs_out],
-        "top_in_degree": [(s, in_deg[s]) for s in hubs_in],
-        "candidate_pairs": [
-            {"slugs": sorted(key), "score": round(score, 3), "shared_labels": labs}
-            for key, score, labs in ranked
-        ],
-    }, in_deg, out_deg
+    return (
+        {
+            "posts_considered": len(all_slugs),
+            "total_content_link_edges": sum(out_deg.values()),
+            "distinct_linked_pairs": len(linked_pairs),
+            "orphans_both_directions": orphans_both,
+            "orphans_no_outbound_only": orphans_out_only,
+            "orphans_no_inbound_only": orphans_in_only,
+            "top_out_degree": [(s, out_deg[s]) for s in hubs_out],
+            "top_in_degree": [(s, in_deg[s]) for s in hubs_in],
+            "candidate_pairs": [
+                {"slugs": sorted(key), "score": round(score, 3), "shared_labels": labs}
+                for key, score, labs in ranked
+            ],
+        },
+        in_deg,
+        out_deg,
+    )
 
 
 def print_report(report, in_deg, out_deg, top):

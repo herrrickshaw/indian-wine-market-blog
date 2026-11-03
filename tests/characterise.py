@@ -43,10 +43,22 @@ def capture(root: Path, scratch: Path) -> dict:
         out["repair"][name + "_static"] = fix.static_pass(src)
     out["body_of"] = fix.body_of("<x><div class='post-body'><div>a</div>b</div>tail")
     out["lum"] = [
-        L._lum(c) for c in ["#fff", "#000", "#abc", "rgb(10,20,30)", "rgba(1,2,3,.5)", "zz", "#12"]
+        L._lum(c)
+        for c in [
+            "#fff",
+            "#000",
+            "#abc",
+            "rgb(10,20,30)",
+            "rgba(1,2,3,.5)",
+            "zz",
+            "#12",
+        ]
     ]
     out["panel"] = [L._is_panel(s) for s in ["body", ".hero", "main", "div p", "#x"]]
-    A, B = "<p>Duty is 150 percent</p><h2>One</h2>", "<p>Duty is 120 percent</p><h2>One</h2>"
+    A, B = (
+        "<p>Duty is 150 percent</p><h2>One</h2>",
+        "<p>Duty is 120 percent</p><h2>One</h2>",
+    )
     out["snap"]["classify"] = [
         list(snapshot.classify(a, b) or ())
         for a, b in [
@@ -59,12 +71,16 @@ def capture(root: Path, scratch: Path) -> dict:
             (A, A.replace("<h2>One</h2>", "")),
         ]
     ]
-    out["snap"]["bump"] = [snapshot.bump("1.2.3", l) for l in ("major", "minor", "patch")]
+    out["snap"]["bump"] = [
+        snapshot.bump("1.2.3", l) for l in ("major", "minor", "patch")
+    ]
     out["snap"]["slug"] = [
-        snapshot.slug_of(u) for u in ["https://b.com/2026/01/foo-bar.html", "https://b.com/", ""]
+        snapshot.slug_of(u)
+        for u in ["https://b.com/2026/01/foo-bar.html", "https://b.com/", ""]
     ]
     out["snap"]["with_ms"] = [
-        snapshot._with_ms(t) for t in ["2026-01-01T16:00:00+05:30", "2026-01-01T16:00:00.123+05:30"]
+        snapshot._with_ms(t)
+        for t in ["2026-01-01T16:00:00+05:30", "2026-01-01T16:00:00.123+05:30"]
     ]
     out["snap"]["markers"] = snapshot.markers(
         "gs-light-lock google_translate_element <script>AI Disclosure</script>"
@@ -79,5 +95,7 @@ def capture(root: Path, scratch: Path) -> dict:
     svg_path = scratch / "svg.html"
     svg_path.write_text(svg)
     out["svg"]["syn"] = svg_chart_lint.lint_file(str(svg_path))
-    out["svg"]["tw"] = [svg_chart_lint.text_width("Hello 123", 12, b) for b in (False, True)]
+    out["svg"]["tw"] = [
+        svg_chart_lint.text_width("Hello 123", 12, b) for b in (False, True)
+    ]
     return out

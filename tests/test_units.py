@@ -26,7 +26,9 @@ def test_repair_is_idempotent_enough_to_add_disclaimer_and_translate_once():
 
 def test_dark_panel_guard_uses_injected_theme_lazily():
     calls = []
-    assert repair.dark_panel_guard("<p>no style</p>", lambda: calls.append(1) or "") == ""
+    assert (
+        repair.dark_panel_guard("<p>no style</p>", lambda: calls.append(1) or "") == ""
+    )
     assert calls == []  # theme only fetched when the post has CSS
     out = repair.dark_panel_guard(
         "<style>.hero{background:var(--p)}</style>", lambda: ":root{--p:#101010}"

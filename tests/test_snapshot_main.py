@@ -49,7 +49,11 @@ def _run(monkeypatch, tmp_path, items, argv, runs):
 
     def fake_run(cmd, **kw):
         runs.append(cmd)
-        out = "1" if cmd[:2] == ["git", "rev-list"] else ("main" if "--abbrev-ref" in cmd else "")
+        out = (
+            "1"
+            if cmd[:2] == ["git", "rev-list"]
+            else ("main" if "--abbrev-ref" in cmd else "")
+        )
         return types.SimpleNamespace(returncode=0, stdout=out, stderr="")
 
     monkeypatch.setattr(snapshot.subprocess, "run", fake_run)
@@ -73,9 +77,34 @@ def test_snapshot_main_matches_golden(monkeypatch, tmp_path, capsys):
     steps = []
     runs = []
     scenarios = [
-        ([_item("1", "a", BODY), _item("2", "b", BODY), _item("3", "dup", BODY), _item("4", "dup", BODY), _item("1", "a", BODY)], ["--note", "first", "--no-commit"]),
-        ([_item("1", "a", BODY), _item("2", "b", BODY), _item("3", "dup", BODY), _item("4", "dup", BODY)], ["--no-commit"]),
-        ([_item("1", "a", BODY), _item("2", "b", BODY), _item("3", "dup", BODY), _item("4", "dup", BODY)], ["--allow-empty", "--no-commit"]),
+        (
+            [
+                _item("1", "a", BODY),
+                _item("2", "b", BODY),
+                _item("3", "dup", BODY),
+                _item("4", "dup", BODY),
+                _item("1", "a", BODY),
+            ],
+            ["--note", "first", "--no-commit"],
+        ),
+        (
+            [
+                _item("1", "a", BODY),
+                _item("2", "b", BODY),
+                _item("3", "dup", BODY),
+                _item("4", "dup", BODY),
+            ],
+            ["--no-commit"],
+        ),
+        (
+            [
+                _item("1", "a", BODY),
+                _item("2", "b", BODY),
+                _item("3", "dup", BODY),
+                _item("4", "dup", BODY),
+            ],
+            ["--allow-empty", "--no-commit"],
+        ),
         (
             [
                 _item("1", "a", BODY.replace("150", "120")),
@@ -90,7 +119,11 @@ def test_snapshot_main_matches_golden(monkeypatch, tmp_path, capsys):
     for items, argv in scenarios:
         err = _run(monkeypatch, tmp_path, items, argv, runs)
         steps.append({"argv": argv, "exit": err, "stdout": capsys.readouterr().out})
-    got = json.loads(json.dumps({"steps": steps, "git": runs, "files": _tree(tmp_path)}, sort_keys=True))
+    got = json.loads(
+        json.dumps(
+            {"steps": steps, "git": runs, "files": _tree(tmp_path)}, sort_keys=True
+        )
+    )
     if not GOLDEN.exists():  # pragma: no cover - one-off capture
         GOLDEN.write_text(json.dumps(got, indent=1, sort_keys=True) + "\n")
         pytest.skip("golden written")

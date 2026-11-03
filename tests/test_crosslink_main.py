@@ -19,18 +19,32 @@ def _link(slug):
 
 def _build(root):
     labels = {
-        "a": ["Wine", "Tariffs"], "b": ["Wine", "Tariffs"], "c": ["Wine", "Tariffs"],
-        "d": ["Wine"], "e": ["Wine"], "f": ["Solo"], "g": [],
+        "a": ["Wine", "Tariffs"],
+        "b": ["Wine", "Tariffs"],
+        "c": ["Wine", "Tariffs"],
+        "d": ["Wine"],
+        "e": ["Wine"],
+        "f": ["Solo"],
+        "g": [],
     }
     (root / "meta").mkdir()
     (root / "posts").mkdir()
-    posts = {str(i): {"slug": s, "labels": lab} for i, (s, lab) in enumerate(labels.items())}
+    posts = {
+        str(i): {"slug": s, "labels": lab} for i, (s, lab) in enumerate(labels.items())
+    }
     posts["99"] = {"slug": "utility", "labels": ["Wine"]}  # no post file
     (root / "meta" / "manifest.json").write_text(json.dumps({"posts": posts}))
     bodies = {
-        "a": _link("b") + _link("a") + _link("article-index-start-here") + _link("ghost"),
+        "a": _link("b")
+        + _link("a")
+        + _link("article-index-start-here")
+        + _link("ghost"),
         "b": _link("d") + "<script>" + _link("e") + "</script>",
-        "c": "", "d": _link("a"), "e": "", "f": "", "g": _link("A"),
+        "c": "",
+        "d": _link("a"),
+        "e": "",
+        "f": "",
+        "g": _link("A"),
     }
     for s, b in bodies.items():
         (root / "posts" / f"{s}.html").write_text(b)
@@ -68,8 +82,18 @@ def test_crosslink_main_matches_golden(tmp_path):
     env = {**os.environ, "PYTHONHASHSEED": "0"}
     here = Path(__file__).resolve().parent
     r = subprocess.run(
-        [sys.executable, "-c", _DRIVER, str(here.parent / "tools"), str(here), str(tmp_path)],
-        capture_output=True, text=True, env=env, check=True,
+        [
+            sys.executable,
+            "-c",
+            _DRIVER,
+            str(here.parent / "tools"),
+            str(here),
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=True,
     )
     got = json.loads(r.stdout)
     if not GOLDEN.exists():  # pragma: no cover - one-off capture

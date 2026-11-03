@@ -91,9 +91,7 @@ def headings(html_str: str) -> list[str]:
     ]
 
 
-def classify(
-    old_body: str | None, new_body: str
-) -> tuple[str | None, str]:
+def classify(old_body: str | None, new_body: str) -> tuple[str | None, str]:
     """Return (level, reason). Heuristic — override with --as when it is wrong."""
     if old_body is None:
         return None, "no previous body on disk"
