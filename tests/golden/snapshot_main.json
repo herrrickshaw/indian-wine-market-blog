@@ -1,0 +1,121 @@
+{
+ "files": {
+  "CHANGELOG.md": "# Change log\n\nOne entry per snapshot. Newest at the bottom.\n\n## 2026-01-02T03:04:05+00:00 \u2014 4 posts live\n\nfirst\n\n\n**Added**\n\n- `a` **v1.0.0** \u2014 Title 1 (38 bytes)\n- `b` **v1.0.0** \u2014 Title 2 (38 bytes)\n- `dup` **v1.0.0** \u2014 Title 3 (38 bytes)\n- `dup--4` **v1.0.0** \u2014 Title 4 (38 bytes)\n\n## 2026-01-02T03:04:05+00:00 \u2014 4 posts live\n\nNo changes.\n\n## 2026-01-02T03:04:05+00:00 \u2014 3 posts live\n\nsecond\n\n\n**Versions**\n\n- `a` **1.0.0 \u2192 1.1.0** (MINOR) \u2014 forced via --as minor (figures changed (+1/-1 distinct numbers))\n- `b-moved` **1.0.0 \u2192 1.1.0** (MINOR) \u2014 forced via --as minor (section(s) added: Two)\n\n**Changed**\n\n- `a` \u2014 38 \u2192 38 bytes (+0)\n- `b-moved` \u2014 38 \u2192 50 bytes (+12)\n\n**Re-dated** (publication date changed; body and URL unchanged)\n\n- `dup` \u2014 2026-01-01 &rarr; 2026-02-01\n\n**Moved** (old URL is now dead \u2014 Blogger never releases a slug)\n\n- `Title 2` \u2014 `b` \u2192 `b-moved`\n\n**No longer published** (drafted or deleted; file kept in `posts/`)\n\n- `dup--4` \u2014 Title 4\n\n## 2026-01-02T03:04:05+00:00 \u2014 1 posts live\n\n**Versions**\n\n- `a` **1.1.0 \u2192 2.0.0** (MAJOR) \u2014 figures changed (+1/-1 distinct numbers)\n\n**Changed**\n\n- `a` \u2014 38 \u2192 37 bytes (-1)\n\n**No longer published** (drafted or deleted; file kept in `posts/`)\n\n- `b-moved` \u2014 Title 2\n- `dup` \u2014 Title 3\n",
+  "meta/a.json": "{\n  \"id\": \"1\",\n  \"title\": \"Title 1\",\n  \"url\": \"https://b.example/2026/01/a.html\",\n  \"slug\": \"a\",\n  \"published\": \"2026-01-01T16:00:00.000+05:30\",\n  \"updated\": \"2026-01-01T16:00:00.000+05:30\",\n  \"labels\": [\n    \"wine\"\n  ],\n  \"bytes\": 37,\n  \"sha256\": \"440c87d0486d253f61d2deef66083fce061ed8e46594d424d9a58bd6fcf76fb8\",\n  \"markers\": {\n    \"light_lock\": false,\n    \"dark_panel_guard\": false,\n    \"typo_unify\": false,\n    \"translate_widget\": false,\n    \"index_link\": false,\n    \"ai_disclosure\": false,\n    \"revision_line\": false,\n    \"inverted_media_query\": false,\n    \"disclaimer_in_script\": false\n  },\n  \"version\": \"2.0.0\",\n  \"version_history\": [\n    {\n      \"version\": \"1.0.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"initial\",\n      \"reason\": \"first snapshot\",\n      \"note\": \"first\"\n    },\n    {\n      \"version\": \"1.1.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"minor\",\n      \"reason\": \"forced via --as minor (figures changed (+1/-1 distinct numbers))\",\n      \"bytes\": [\n        38,\n        38\n      ],\n      \"url_changed\": null,\n      \"markers_changed\": null,\n      \"note\": \"second\"\n    },\n    {\n      \"version\": \"2.0.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"major\",\n      \"reason\": \"figures changed (+1/-1 distinct numbers)\",\n      \"bytes\": [\n        38,\n        37\n      ],\n      \"url_changed\": null,\n      \"markers_changed\": null,\n      \"note\": \"\"\n    }\n  ]\n}\n",
+  "meta/b-moved.json": "{\n  \"id\": \"2\",\n  \"title\": \"Title 2\",\n  \"url\": \"https://b.example/2026/01/b-moved.html\",\n  \"slug\": \"b-moved\",\n  \"published\": \"2026-01-01T16:00:00.000+05:30\",\n  \"updated\": \"2026-01-01T16:00:00.000+05:30\",\n  \"labels\": [\n    \"wine\"\n  ],\n  \"bytes\": 50,\n  \"sha256\": \"07112f59f6164c7309bac8c1c49107990093f8f5d2c8224fe29c6a18400ef7bb\",\n  \"markers\": {\n    \"light_lock\": false,\n    \"dark_panel_guard\": false,\n    \"typo_unify\": false,\n    \"translate_widget\": false,\n    \"index_link\": false,\n    \"ai_disclosure\": false,\n    \"revision_line\": false,\n    \"inverted_media_query\": false,\n    \"disclaimer_in_script\": false\n  },\n  \"version\": \"1.1.0\",\n  \"version_history\": [\n    {\n      \"version\": \"1.0.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"initial\",\n      \"reason\": \"first snapshot\",\n      \"note\": \"first\"\n    },\n    {\n      \"version\": \"1.1.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"minor\",\n      \"reason\": \"forced via --as minor (section(s) added: Two)\",\n      \"bytes\": [\n        38,\n        50\n      ],\n      \"url_changed\": [\n        \"https://b.example/2026/01/b.html\",\n        \"https://b.example/2026/01/b-moved.html\"\n      ],\n      \"markers_changed\": null,\n      \"note\": \"second\"\n    }\n  ]\n}\n",
+  "meta/b.json": "{\n  \"id\": \"2\",\n  \"title\": \"Title 2\",\n  \"url\": \"https://b.example/2026/01/b.html\",\n  \"slug\": \"b\",\n  \"published\": \"2026-01-01T16:00:00.000+05:30\",\n  \"updated\": \"2026-01-01T16:00:00.000+05:30\",\n  \"labels\": [\n    \"wine\"\n  ],\n  \"bytes\": 38,\n  \"sha256\": \"1b9015f7a9be03bd9e5da950212892af1d2db1bb2956c642b18fdf16b2b6ab18\",\n  \"markers\": {\n    \"light_lock\": false,\n    \"dark_panel_guard\": false,\n    \"typo_unify\": false,\n    \"translate_widget\": false,\n    \"index_link\": false,\n    \"ai_disclosure\": false,\n    \"revision_line\": false,\n    \"inverted_media_query\": false,\n    \"disclaimer_in_script\": false\n  },\n  \"version\": \"1.0.0\",\n  \"version_history\": [\n    {\n      \"version\": \"1.0.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"initial\",\n      \"reason\": \"first snapshot\",\n      \"note\": \"first\"\n    }\n  ]\n}\n",
+  "meta/dup--4.json": "{\n  \"id\": \"4\",\n  \"title\": \"Title 4\",\n  \"url\": \"https://b.example/2026/01/dup.html\",\n  \"slug\": \"dup--4\",\n  \"published\": \"2026-01-01T16:00:00.000+05:30\",\n  \"updated\": \"2026-01-01T16:00:00.000+05:30\",\n  \"labels\": [\n    \"wine\"\n  ],\n  \"bytes\": 38,\n  \"sha256\": \"1b9015f7a9be03bd9e5da950212892af1d2db1bb2956c642b18fdf16b2b6ab18\",\n  \"markers\": {\n    \"light_lock\": false,\n    \"dark_panel_guard\": false,\n    \"typo_unify\": false,\n    \"translate_widget\": false,\n    \"index_link\": false,\n    \"ai_disclosure\": false,\n    \"revision_line\": false,\n    \"inverted_media_query\": false,\n    \"disclaimer_in_script\": false\n  },\n  \"version\": \"1.0.0\",\n  \"version_history\": [\n    {\n      \"version\": \"1.0.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"initial\",\n      \"reason\": \"first snapshot\",\n      \"note\": \"first\"\n    }\n  ]\n}\n",
+  "meta/dup.json": "{\n  \"id\": \"3\",\n  \"title\": \"Title 3\",\n  \"url\": \"https://b.example/2026/01/dup.html\",\n  \"slug\": \"dup\",\n  \"published\": \"2026-02-01T16:00:00.000+05:30\",\n  \"updated\": \"2026-02-01T16:00:00.000+05:30\",\n  \"labels\": [\n    \"wine\"\n  ],\n  \"bytes\": 38,\n  \"sha256\": \"1b9015f7a9be03bd9e5da950212892af1d2db1bb2956c642b18fdf16b2b6ab18\",\n  \"markers\": {\n    \"light_lock\": false,\n    \"dark_panel_guard\": false,\n    \"typo_unify\": false,\n    \"translate_widget\": false,\n    \"index_link\": false,\n    \"ai_disclosure\": false,\n    \"revision_line\": false,\n    \"inverted_media_query\": false,\n    \"disclaimer_in_script\": false\n  },\n  \"version\": \"1.0.0\",\n  \"version_history\": [\n    {\n      \"version\": \"1.0.0\",\n      \"date\": \"2026-01-02T03:04:05+00:00\",\n      \"level\": \"initial\",\n      \"reason\": \"first snapshot\",\n      \"note\": \"first\"\n    }\n  ]\n}\n",
+  "meta/manifest.json": "{\n  \"snapshot\": \"2026-01-02T03:04:05+00:00\",\n  \"count\": 1,\n  \"posts\": {\n    \"1\": {\n      \"id\": \"1\",\n      \"title\": \"Title 1\",\n      \"url\": \"https://b.example/2026/01/a.html\",\n      \"slug\": \"a\",\n      \"published\": \"2026-01-01T16:00:00.000+05:30\",\n      \"updated\": \"2026-01-01T16:00:00.000+05:30\",\n      \"labels\": [\n        \"wine\"\n      ],\n      \"bytes\": 37,\n      \"sha256\": \"440c87d0486d253f61d2deef66083fce061ed8e46594d424d9a58bd6fcf76fb8\",\n      \"markers\": {\n        \"light_lock\": false,\n        \"dark_panel_guard\": false,\n        \"typo_unify\": false,\n        \"translate_widget\": false,\n        \"index_link\": false,\n        \"ai_disclosure\": false,\n        \"revision_line\": false,\n        \"inverted_media_query\": false,\n        \"disclaimer_in_script\": false\n      },\n      \"version\": \"2.0.0\",\n      \"version_history\": [\n        {\n          \"version\": \"1.0.0\",\n          \"date\": \"2026-01-02T03:04:05+00:00\",\n          \"level\": \"initial\",\n          \"reason\": \"first snapshot\",\n          \"note\": \"first\"\n        },\n        {\n          \"version\": \"1.1.0\",\n          \"date\": \"2026-01-02T03:04:05+00:00\",\n          \"level\": \"minor\",\n          \"reason\": \"forced via --as minor (figures changed (+1/-1 distinct numbers))\",\n          \"bytes\": [\n            38,\n            38\n          ],\n          \"url_changed\": null,\n          \"markers_changed\": null,\n          \"note\": \"second\"\n        },\n        {\n          \"version\": \"2.0.0\",\n          \"date\": \"2026-01-02T03:04:05+00:00\",\n          \"level\": \"major\",\n          \"reason\": \"figures changed (+1/-1 distinct numbers)\",\n          \"bytes\": [\n            38,\n            37\n          ],\n          \"url_changed\": null,\n          \"markers_changed\": null,\n          \"note\": \"\"\n        }\n      ]\n    }\n  }\n}\n",
+  "posts/a.html": "<h2>One</h2><p>Duty is 99 percent</p>",
+  "posts/b-moved.html": "<h2>One</h2><p>Duty is 150 percent</p><h2>Two</h2>",
+  "posts/b.html": "<h2>One</h2><p>Duty is 150 percent</p>",
+  "posts/dup--4.html": "<h2>One</h2><p>Duty is 150 percent</p>",
+  "posts/dup.html": "<h2>One</h2><p>Duty is 150 percent</p>"
+ },
+ "git": [
+  [
+   "git",
+   "add",
+   "-A"
+  ],
+  [
+   "git",
+   "commit",
+   "-m",
+   "snapshot 2026-01-02T03:04:05+00:00: +0 ~2 ->1 -1 | v2 bumped\n\nsecond"
+  ],
+  [
+   "git",
+   "add",
+   "-A"
+  ],
+  [
+   "git",
+   "commit",
+   "-m",
+   "snapshot 2026-01-02T03:04:05+00:00: +0 ~1 ->0 -2 | v1 bumped"
+  ],
+  [
+   "git",
+   "fetch",
+   "-q",
+   "origin"
+  ],
+  [
+   "git",
+   "rev-parse",
+   "--abbrev-ref",
+   "HEAD"
+  ],
+  [
+   "git",
+   "rev-list",
+   "--count",
+   "HEAD..origin/main"
+  ],
+  [
+   "git",
+   "pull",
+   "--rebase",
+   "origin",
+   "main"
+  ],
+  [
+   "git",
+   "push",
+   "origin",
+   "HEAD"
+  ]
+ ],
+ "steps": [
+  {
+   "argv": [
+    "--note",
+    "first",
+    "--no-commit"
+   ],
+   "exit": null,
+   "stdout": "warning: feed returned post 1 twice \u2014 ignoring the duplicate\nwarning: slug 'dup' used by posts 3 and 4\n4 posts | +4 added | ~0 changed | ->0 moved | ~0 re-dated | -0 unpublished\n  +  a\n  +  b\n  +  dup\n  +  dup--4\n"
+  },
+  {
+   "argv": [
+    "--no-commit"
+   ],
+   "exit": null,
+   "stdout": "warning: slug 'dup' used by posts 3 and 4\nno change since the last snapshot \u2014 no changelog entry, no commit\n"
+  },
+  {
+   "argv": [
+    "--allow-empty",
+    "--no-commit"
+   ],
+   "exit": null,
+   "stdout": "warning: slug 'dup' used by posts 3 and 4\n4 posts | +0 added | ~0 changed | ->0 moved | ~0 re-dated | -0 unpublished\n"
+  },
+  {
+   "argv": [
+    "--note",
+    "second",
+    "--as",
+    "minor"
+   ],
+   "exit": null,
+   "stdout": "3 posts | +0 added | ~2 changed | ->1 moved | ~1 re-dated | -1 unpublished\n  d  dup: 2026-01-01 -> 2026-02-01\n  v a: 1.0.0 -> 1.1.0 (minor) \u2014 forced via --as minor (figures changed (+1/-1 distinct numbers))\n  v b-moved: 1.0.0 -> 1.1.0 (minor) \u2014 forced via --as minor (section(s) added: Two)\n  -> b => b-moved\n  ~  a 38\u219238\n  ~  b-moved 38\u219250\n  -  dup--4\n\n"
+  },
+  {
+   "argv": [
+    "--push"
+   ],
+   "exit": null,
+   "stdout": "1 posts | +0 added | ~1 changed | ->0 moved | ~0 re-dated | -2 unpublished\n  v a: 1.1.0 -> 2.0.0 (major) \u2014 figures changed (+1/-1 distinct numbers)\n  ~  a 38\u219237\n  -  b-moved\n  -  dup\n\nremote moved on by 1 commit(s) \u2014 rebasing first\n\n"
+  },
+  {
+   "argv": [
+    "--no-commit"
+   ],
+   "exit": "feed returned no posts \u2014 refusing to snapshot (would look like a wipe)",
+   "stdout": ""
+  }
+ ]
+}
