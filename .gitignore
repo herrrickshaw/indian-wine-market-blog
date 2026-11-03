@@ -13,3 +13,8 @@ posts/*.render.html.*.png
 
 # consistency-check/fix.py's output, not source
 consistency-check/fixes/
+
+# local virtualenv
+.venv/
+.pytest_cache/
+.ruff_cache/

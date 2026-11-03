@@ -1,0 +1,11 @@
+=== out/post-eu-fta-wine-tariff-cut.html
+  [OK] BLOCKER js-parses: 
+  [OK] BLOCKER no-disclaimer-in-script: 
+  [OK] BLOCKER no-inverted-media-query: 
+  [OK] BLOCKER dark-vars-locked: n/a (no dark palette)
+  [OK] MAJOR wpi-attribution: n/a
+  [OK] MAJOR disclaimer-present: 
+  [OK] MINOR translate-widget: 
+  [OK] MINOR index-link: 
+  [OK] MINOR bw-override: n/a (no dark palette)
+  [OK] MINOR table-units-in-header: 0%

@@ -102,7 +102,7 @@ def build_graph(by_slug):
     return out_links
 
 
-def main():
+def parse_args(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", metavar="PATH")
     ap.add_argument(
@@ -112,33 +112,20 @@ def main():
         help="ignore labels with fewer than this many live posts",
     )
     ap.add_argument("--top", type=int, default=40, help="max rows per list section")
-    args = ap.parse_args()
+    return ap.parse_args(argv)
 
-    by_slug = load_manifest()
-    out_links = build_graph(by_slug)
 
+def invert_links(out_links):
+    """in_links[slug] = set of slugs that link to it."""
     in_links = collections.defaultdict(set)
     for src, targets in out_links.items():
         for t in targets:
             in_links[t].add(src)
+    return in_links
 
-    all_slugs = set(by_slug) & set(out_links)  # skip UTILITY pages with no post file
-    out_deg = {s: len(out_links.get(s, set())) for s in all_slugs}
-    in_deg = {s: len(in_links.get(s, set())) for s in all_slugs}
 
-    orphans_both = sorted(s for s in all_slugs if out_deg[s] == 0 and in_deg[s] == 0)
-    orphans_out_only = sorted(s for s in all_slugs if out_deg[s] == 0 and in_deg[s] > 0)
-    orphans_in_only = sorted(s for s in all_slugs if out_deg[s] > 0 and in_deg[s] == 0)
-
-    hubs_out = sorted(all_slugs, key=lambda s: -out_deg[s])[: args.top]
-    hubs_in = sorted(all_slugs, key=lambda s: -in_deg[s])[: args.top]
-
-    total_edges = sum(out_deg.values())
-    linked_pairs = set()
-    for s, targets in out_links.items():
-        for t in targets:
-            linked_pairs.add(frozenset((s, t)))
-
+def rank_candidates(by_slug, all_slugs, linked_pairs, min_cluster, top):
+    """Same-label pairs with no link in either direction, best first: [(frozenset, score, labels)]."""
     # Label clusters: which posts share a label, per the manifest's own tagging.
     label_members = collections.defaultdict(list)
     for slug, rec in by_slug.items():
@@ -154,7 +141,7 @@ def main():
     candidates = []
     for lab, members in label_members.items():
         n = len(members)
-        if n < args.min_label_cluster or n > 40:
+        if n < min_cluster or n > 40:
             continue  # too small to matter, or too generic to be a real signal
         weight = 1.0 / n  # rarer label => higher-confidence signal per pair
         for i in range(len(members)):
@@ -173,32 +160,55 @@ def main():
         pair_score[key] += weight
         pair_labels[key].append(lab)
 
-    ranked_candidates = sorted(pair_score.items(), key=lambda kv: -kv[1])[: args.top]
+    ranked = sorted(pair_score.items(), key=lambda kv: -kv[1])[:top]
+    return [(key, score, pair_labels[key]) for key, score in ranked]
 
-    report = {
-        "posts_considered": len(all_slugs),
-        "total_content_link_edges": total_edges,
-        "distinct_linked_pairs": len(linked_pairs),
-        "orphans_both_directions": orphans_both,
-        "orphans_no_outbound_only": orphans_out_only,
-        "orphans_no_inbound_only": orphans_in_only,
-        "top_out_degree": [(s, out_deg[s]) for s in hubs_out],
-        "top_in_degree": [(s, in_deg[s]) for s in hubs_in],
-        "candidate_pairs": [
-            {
-                "slugs": sorted(key),
-                "score": round(score, 3),
-                "shared_labels": pair_labels[key],
-            }
-            for key, score in ranked_candidates
-        ],
-    }
 
-    if args.json:
-        Path(args.json).write_text(json.dumps(report, indent=2))
-        print(f"wrote {args.json}")
-        return 0
+def build_report(by_slug, out_links, min_cluster, top):
+    """Compute the whole cross-link report (orphans, hubs, candidate pairs) as a dict."""
+    in_links = invert_links(out_links)
+    all_slugs = set(by_slug) & set(out_links)  # skip UTILITY pages with no post file
+    out_deg = {s: len(out_links.get(s, set())) for s in all_slugs}
+    in_deg = {s: len(in_links.get(s, set())) for s in all_slugs}
 
+    orphans_both = sorted(s for s in all_slugs if out_deg[s] == 0 and in_deg[s] == 0)
+    orphans_out_only = sorted(s for s in all_slugs if out_deg[s] == 0 and in_deg[s] > 0)
+    orphans_in_only = sorted(s for s in all_slugs if out_deg[s] > 0 and in_deg[s] == 0)
+
+    hubs_out = sorted(all_slugs, key=lambda s: -out_deg[s])[:top]
+    hubs_in = sorted(all_slugs, key=lambda s: -in_deg[s])[:top]
+
+    linked_pairs = set()
+    for s, targets in out_links.items():
+        for t in targets:
+            linked_pairs.add(frozenset((s, t)))
+
+    ranked = rank_candidates(by_slug, all_slugs, linked_pairs, min_cluster, top)
+    return (
+        {
+            "posts_considered": len(all_slugs),
+            "total_content_link_edges": sum(out_deg.values()),
+            "distinct_linked_pairs": len(linked_pairs),
+            "orphans_both_directions": orphans_both,
+            "orphans_no_outbound_only": orphans_out_only,
+            "orphans_no_inbound_only": orphans_in_only,
+            "top_out_degree": [(s, out_deg[s]) for s in hubs_out],
+            "top_in_degree": [(s, in_deg[s]) for s in hubs_in],
+            "candidate_pairs": [
+                {"slugs": sorted(key), "score": round(score, 3), "shared_labels": labs}
+                for key, score, labs in ranked
+            ],
+        },
+        in_deg,
+        out_deg,
+    )
+
+
+def print_report(report, in_deg, out_deg, top):
+    """Human-readable rendering of build_report()'s output."""
+    orphans_both = report["orphans_both_directions"]
+    orphans_out_only = report["orphans_no_outbound_only"]
+    orphans_in_only = report["orphans_no_inbound_only"]
     print(f"posts considered: {report['posts_considered']}")
     print(f"content cross-link edges (directed): {report['total_content_link_edges']}")
     print(f"distinct linked pairs: {report['distinct_linked_pairs']}")
@@ -208,30 +218,26 @@ def main():
     print(
         f"=== Orphans: zero outbound AND zero inbound content links ({len(orphans_both)}) ==="
     )
-    for s in orphans_both[: args.top]:
+    for s in orphans_both[:top]:
         print(f"  {s}")
-    if len(orphans_both) > args.top:
-        print(f"  ... and {len(orphans_both) - args.top} more")
+    if len(orphans_both) > top:
+        print(f"  ... and {len(orphans_both) - top} more")
     print()
     print(f"=== Zero outbound, but linked FROM elsewhere ({len(orphans_out_only)}) ===")
-    for s in orphans_out_only[: args.top]:
+    for s in orphans_out_only[:top]:
         print(f"  {s}  (in-links: {in_deg[s]})")
     print()
     print(f"=== Never linked TO from any other post ({len(orphans_in_only)}) ===")
-    for s in orphans_in_only[: args.top]:
+    for s in orphans_in_only[:top]:
         print(f"  {s}  (out-links: {out_deg[s]})")
-    if len(orphans_in_only) > args.top:
-        print(f"  ... and {len(orphans_in_only) - args.top} more")
+    if len(orphans_in_only) > top:
+        print(f"  ... and {len(orphans_in_only) - top} more")
     print()
-    print(
-        f"=== Best-connected hubs, by outbound content links (top {min(args.top,10)}) ==="
-    )
+    print(f"=== Best-connected hubs, by outbound content links (top {min(top,10)}) ===")
     for s, d in report["top_out_degree"][:10]:
         print(f"  {d:2d}  {s}")
     print()
-    print(
-        f"=== Best-connected hubs, by inbound content links (top {min(args.top,10)}) ==="
-    )
+    print(f"=== Best-connected hubs, by inbound content links (top {min(top,10)}) ===")
     for s, d in report["top_in_degree"][:10]:
         print(f"  {d:2d}  {s}")
     print()
@@ -242,6 +248,20 @@ def main():
         print(
             f"  {c['score']:.3f}  {c['slugs'][0][:45]:47} <-> {c['slugs'][1][:45]:47} [{', '.join(c['shared_labels'])}]"
         )
+
+
+def main():
+    args = parse_args()
+    by_slug = load_manifest()
+    out_links = build_graph(by_slug)
+    report, in_deg, out_deg = build_report(
+        by_slug, out_links, args.min_label_cluster, args.top
+    )
+    if args.json:
+        Path(args.json).write_text(json.dumps(report, indent=2))
+        print(f"wrote {args.json}")
+        return 0
+    print_report(report, in_deg, out_deg, args.top)
     return 0
 
 

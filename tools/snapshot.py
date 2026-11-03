@@ -30,7 +30,6 @@ and it works from an unrestricted environment too.
 import argparse
 import datetime as dt
 import hashlib
-import html
 import json
 import re
 import subprocess
@@ -47,6 +46,16 @@ PAGE = 100
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import blogger_api as B
+from versioning import (  # noqa: F401 -- some names re-exported for compatibility
+    FIRST_VERSION,
+    MARKERS,
+    bump,
+    classify,
+    headings,
+    visible_text,
+    marker_delta,
+    markers,
+)
 
 _TS_NO_MS = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})([+-]\d{2}:\d{2})$")
 
@@ -118,135 +127,14 @@ def parse(entry):
     }, body
 
 
-# Design/template markers this blog's house style depends on. Tracked per post so
-# a regression (a lost light-lock, a re-spliced disclaimer) shows up in the diff
-# even when the prose is untouched.
-MARKERS = {
-    "light_lock": lambda b: "gs-light-lock" in b,
-    "dark_panel_guard": lambda b: "gs-dark-panel-guard" in b,
-    "typo_unify": lambda b: "gs-typo-unify" in b,
-    "translate_widget": lambda b: "google_translate_element" in b,
-    "index_link": lambda b: "article-index-start-here" in b,
-    "ai_disclosure": lambda b: "gs-ai-disclosure" in b,
-    "revision_line": lambda b: "gs-revision-v1" in b,
-    "inverted_media_query": lambda b: bool(
-        re.search(r"not all and \(prefers-color-scheme", b)
-    ),
-    "disclaimer_in_script": lambda b: any(
-        "AI Disclosure" in s
-        for s in re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", b, re.IGNORECASE)
-    ),
-}
-
-
-def markers(body):
-    return {k: fn(body) for k, fn in MARKERS.items()}
-
-
-def marker_delta(old, rec):
-    return {
-        k: [old.get("markers", {}).get(k), rec["markers"][k]]
-        for k in rec["markers"]
-        if old.get("markers", {}).get(k) != rec["markers"][k]
-    }
-
-
-# ---------------------------------------------------------------- versioning
-#
-# Semver (semver.org) applied to prose. The "public API" of a post is what a
-# reader could act on — its figures and its claims:
-#
-#   MAJOR  a figure or a conclusion changed. Someone who acted on the previous
-#          version could now be wrong. This is the incompatible change.
-#   MINOR  material new content, backward compatible — a new section, table or
-#          chart. Nothing previously stated stopped being true.
-#   PATCH  nothing the reader relies on moved: styling, markup, a design fix, a
-#          typo, a reworded sentence.
-#
-# Existing posts start at 1.0.0, not 0.1.0: they are published and stable, and
-# semver reserves 0.y.z for "anything MAY change at any time".
-FIRST_VERSION = "1.0.0"
-
-_DROP = re.compile(r"<(script|style)\b[^>]*>[\s\S]*?</\1>", re.IGNORECASE)
-# The revision line and the revision-history block are *about* the version, so
-# they must not feed back into classifying it — their dates and version numbers
-# would otherwise read as "figures changed" and force a spurious MAJOR bump.
-_REVLINE = re.compile(r"<p\b[^>]*data-gs-revision-v1[^>]*>[\s\S]*?</p>", re.IGNORECASE)
-_REVBLOCK = re.compile(
-    r"<div\b[^>]*id=[\"']changelog[\"'][^>]*>[\s\S]*?</div>", re.IGNORECASE
-)
-_TAG = re.compile(r"<[^>]+>")
-_NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
-_HEAD = re.compile(r"<h[1-4][^>]*>([\s\S]*?)</h[1-4]>", re.IGNORECASE)
-
-
-def visible_text(html_str):
-    s = _REVLINE.sub(" ", html_str)
-    s = _REVBLOCK.sub(" ", s)
-    s = _DROP.sub(" ", s)
-    s = _TAG.sub(" ", s)
-    s = html.unescape(s)
-    return re.sub(r"\s+", " ", s).strip()
-
-
-def headings(html_str):
-    html_str = _REVBLOCK.sub(" ", html_str)
-    return [
-        re.sub(r"\s+", " ", _TAG.sub("", h)).strip() for h in _HEAD.findall(html_str)
-    ]
-
-
-def classify(old_body, new_body):
-    """Return (level, reason). Heuristic — override with --as when it is wrong."""
-    if old_body is None:
-        return None, "no previous body on disk"
-    if old_body == new_body:
-        # posts/ is the PREVIOUS snapshot. If it already matches what the feed
-        # just returned while the manifest says the bytes moved, the file was
-        # edited in place and then published — so this diff is the new body
-        # against itself and would score "nothing changed" for any edit at all.
-        return None, (
-            "posts/ already held the published body — edited in place, "
-            "so no diff was possible; set the level with --as"
-        )
-    ot, nt = visible_text(old_body), visible_text(new_body)
-    if ot == nt:
-        return "patch", "visible text identical; only markup/styling changed"
-
-    on, nn = sorted(_NUM.findall(ot)), sorted(_NUM.findall(nt))
-    if on != nn:
-        added, removed = len(set(nn) - set(on)), len(set(on) - set(nn))
-        return "major", f"figures changed (+{added}/-{removed} distinct numbers)"
-
-    oh, nh = headings(old_body), headings(new_body)
-    gone = [h for h in oh if h not in nh]
-    if gone:
-        return "major", f"section(s) removed: {', '.join(gone[:3])}"
-
-    fresh = [h for h in nh if h not in oh]
-    if fresh:
-        return "minor", f"section(s) added: {', '.join(fresh[:3])}"
-    if len(nt) > len(ot) * 1.02:
-        return "minor", f"prose grew {len(ot):,}→{len(nt):,} chars with no new figures"
-    return "patch", "wording changed; no figures, sections or claims moved"
-
-
-def bump(version, level):
-    major, minor, patch = (int(x) for x in version.split("."))
-    if level == "major":
-        return f"{major + 1}.0.0"
-    if level == "minor":
-        return f"{major}.{minor + 1}.0"
-    return f"{major}.{minor}.{patch + 1}"
-
-
 def load_manifest():
     if MANIFEST.exists():
         return json.loads(MANIFEST.read_text())
     return {"posts": {}}
 
 
-def main():
+def parse_args(argv=None):
+    """Command-line options for a snapshot run."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--note", default="", help="why this snapshot was taken")
     ap.add_argument("--no-commit", action="store_true")
@@ -264,21 +152,13 @@ def main():
         choices=["major", "minor", "patch"],
         help="override the auto-classified semver level for every change this run",
     )
-    args = ap.parse_args()
+    return ap.parse_args(argv)
 
-    POSTS.mkdir(exist_ok=True)
-    META.mkdir(exist_ok=True)
 
-    prev = load_manifest()["posts"]
-    entries = all_entries()
-    if not entries:
-        sys.exit(
-            "feed returned no posts — refusing to snapshot (would look like a wipe)"
-        )
-
-    # Key by post id, never by slug. Slugs are derived from the URL and are not a
-    # safe primary key: two feed entries reducing to the same slug would silently
-    # overwrite each other and report a phantom size change.
+def dedupe_entries(entries):
+    """Key by post id, never by slug. Slugs are derived from the URL and are not a
+    safe primary key: two feed entries reducing to the same slug would silently
+    overwrite each other and report a phantom size change."""
     seen_ids = {}
     for e in entries:
         pid = e["id"]["$t"].rsplit(".post-", 1)[-1]
@@ -286,12 +166,97 @@ def main():
             print(f"warning: feed returned post {pid} twice — ignoring the duplicate")
             continue
         seen_ids[pid] = e
-    entries = list(seen_ids.values())
+    return list(seen_ids.values())
 
-    now = dt.datetime.now().astimezone().isoformat(timespec="seconds")
-    cur, added, changed, moved, bumped, redated = {}, [], [], [], [], []
+
+def _first_history(now, note):
+    return [
+        {
+            "version": FIRST_VERSION,
+            "date": now,
+            "level": "initial",
+            "reason": "first snapshot",
+            "note": note or "",
+        }
+    ]
+
+
+def _carry_history(rec, old, now):
+    """Copy version and history from the manifest, adding a baseline when absent."""
+    rec["version"] = old.get("version", FIRST_VERSION)
+    rec["version_history"] = list(old.get("version_history", []))
+    if not rec["version_history"]:
+        # Post predates versioning: record the baseline so history is
+        # never empty and v1.0.0 has a date attached.
+        rec["version_history"].append(
+            {
+                "version": rec["version"],
+                "date": now,
+                "level": "baseline",
+                "reason": "version tracking introduced",
+                "note": "",
+            }
+        )
+
+
+def _level_and_reason(old_body, body, body_changed, force_level):
+    level, reason = classify(old_body, body)
+    if not body_changed:
+        level, reason = "patch", "moved to a new URL; body unchanged"
+    if level is None:
+        # classify() could not compare. Default to patch but keep its
+        # reason — it says which failure this was, and an in-place
+        # edit needs a human --as, not a silent 1.0.1.
+        level = "patch"
+        reason = f"UNCLASSIFIED, defaulted to patch: {reason}"
+    if force_level:
+        level = force_level
+        reason = f"forced via --as {level} ({reason})"
+    return level, reason
+
+
+def apply_change(rec, old, old_body, body, now, args, tally):
+    """Compare one post with its manifest record; bump its version and fill `tally`."""
+    _carry_history(rec, old, now)
+    url_moved = old.get("url") != rec["url"]
+    body_changed = old.get("sha256") != rec["sha256"]
+    # A publication-date change alters neither body nor URL, so without
+    # this it is invisible in the changelog — yet it reorders the blog
+    # and decides which posts the homepage renders.
+    date_moved = old.get("published") != rec["published"]
+    if date_moved and not (url_moved or body_changed):
+        tally["redated"].append((rec, old))
+    if url_moved:
+        # Same post, new address. Blogger reserves slugs permanently, so
+        # a moved post leaves a dead URL behind — always log it, even
+        # when not one byte of the body changed.
+        tally["moved"].append((rec, old))
+    if body_changed:
+        tally["changed"].append((rec, old, marker_delta(old, rec)))
+    if not (body_changed or url_moved):
+        return
+    level, reason = _level_and_reason(old_body, body, body_changed, args.force_level)
+    rec["version"] = bump(rec["version"], level)
+    rec["version_history"].append(
+        {
+            "version": rec["version"],
+            "date": now,
+            "level": level,
+            "reason": reason,
+            "bytes": [old.get("bytes"), rec["bytes"]],
+            "url_changed": ([old.get("url"), rec["url"]] if url_moved else None),
+            "markers_changed": marker_delta(old, rec) or None,
+            "note": args.note or "",
+        }
+    )
+    tally["bumped"].append((rec, old, level, reason))
+
+
+def process_entries(entries, prev, now, args):
+    """Write each post body and sidecar; return (current records, change tally)."""
+    cur = {}
+    tally = {k: [] for k in ("added", "changed", "moved", "bumped", "redated")}
     slug_owner = {}
-
     for e in entries:
         rec, body = parse(e)
         rec["markers"] = markers(body)
@@ -317,77 +282,10 @@ def main():
         (POSTS / f"{slug}.html").write_text(body, encoding="utf-8")
         if old is None:
             rec["version"] = FIRST_VERSION
-            rec["version_history"] = [
-                {
-                    "version": FIRST_VERSION,
-                    "date": now,
-                    "level": "initial",
-                    "reason": "first snapshot",
-                    "note": args.note or "",
-                }
-            ]
-            added.append(rec)
+            rec["version_history"] = _first_history(now, args.note)
+            tally["added"].append(rec)
         else:
-            rec["version"] = old.get("version", FIRST_VERSION)
-            rec["version_history"] = list(old.get("version_history", []))
-            if not rec["version_history"]:
-                # Post predates versioning: record the baseline so history is
-                # never empty and v1.0.0 has a date attached.
-                rec["version_history"].append(
-                    {
-                        "version": rec["version"],
-                        "date": now,
-                        "level": "baseline",
-                        "reason": "version tracking introduced",
-                        "note": "",
-                    }
-                )
-            url_moved = old.get("url") != rec["url"]
-            body_changed = old.get("sha256") != rec["sha256"]
-            # A publication-date change alters neither body nor URL, so without
-            # this it is invisible in the changelog — yet it reorders the blog
-            # and decides which posts the homepage renders.
-            date_moved = old.get("published") != rec["published"]
-            if date_moved and not (url_moved or body_changed):
-                redated.append((rec, old))
-
-            if url_moved:
-                # Same post, new address. Blogger reserves slugs permanently, so
-                # a moved post leaves a dead URL behind — always log it, even
-                # when not one byte of the body changed.
-                moved.append((rec, old))
-            if body_changed:
-                changed.append((rec, old, marker_delta(old, rec)))
-
-            if body_changed or url_moved:
-                level, reason = classify(old_body, body)
-                if not body_changed:
-                    level, reason = "patch", "moved to a new URL; body unchanged"
-                if level is None:
-                    # classify() could not compare. Default to patch but keep its
-                    # reason — it says which failure this was, and an in-place
-                    # edit needs a human --as, not a silent 1.0.1.
-                    level = "patch"
-                    reason = f"UNCLASSIFIED, defaulted to patch: {reason}"
-                if args.force_level:
-                    level = args.force_level
-                    reason = f"forced via --as {level} ({reason})"
-                rec["version"] = bump(rec["version"], level)
-                rec["version_history"].append(
-                    {
-                        "version": rec["version"],
-                        "date": now,
-                        "level": level,
-                        "reason": reason,
-                        "bytes": [old.get("bytes"), rec["bytes"]],
-                        "url_changed": (
-                            [old.get("url"), rec["url"]] if url_moved else None
-                        ),
-                        "markers_changed": marker_delta(old, rec) or None,
-                        "note": args.note or "",
-                    }
-                )
-                bumped.append((rec, old, level, reason))
+            apply_change(rec, old, old_body, body, now, args, tally)
         # Write the sidecar last: version and version_history are only attached
         # above, so writing earlier silently shipped meta/ files with no version
         # in them while the manifest held the real one.
@@ -395,12 +293,10 @@ def main():
             json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
         cur[rec["id"]] = rec
+    return cur, tally
 
-    removed = [prev[k] for k in prev if k not in cur]
-    for r in removed:
-        # keep the file: the archive is the point. Only the manifest drops it.
-        pass
 
+def write_manifest(cur, now):
     MANIFEST.write_text(
         json.dumps(
             {"snapshot": now, "count": len(cur), "posts": dict(sorted(cur.items()))},
@@ -411,18 +307,14 @@ def main():
         encoding="utf-8",
     )
 
-    # A scheduled sync that finds nothing new must leave no trace. Writing a
-    # CHANGELOG entry every run would bury the real history under one empty
-    # commit a day — and this archive exists so the blog can be reverted to an
-    # earlier state, which means its log has to stay readable.
-    nothing_happened = not (added or changed or moved or removed or bumped or redated)
-    if nothing_happened and not args.allow_empty:
-        print("no change since the last snapshot — no changelog entry, no commit")
-        return
 
+def render_changelog(now, cur, note, tally, removed):
+    """The markdown block appended to CHANGELOG.md for this snapshot."""
+    added, changed, moved = tally["added"], tally["changed"], tally["moved"]
+    bumped, redated = tally["bumped"], tally["redated"]
     lines = [f"\n## {now} — {len(cur)} posts live"]
-    if args.note:
-        lines.append(f"\n{args.note}\n")
+    if note:
+        lines.append(f"\n{note}\n")
     if added:
         lines.append("\n**Added**\n")
         lines += [
@@ -469,11 +361,18 @@ def main():
     if not (added or changed or removed or moved or bumped or redated):
         lines.append("\nNo changes.")
     lines.append("")
+    return "\n".join(lines)
 
+
+def append_changelog(text):
     head = "# Change log\n\nOne entry per snapshot. Newest at the bottom.\n"
     prior = CHANGELOG.read_text() if CHANGELOG.exists() else head
-    CHANGELOG.write_text(prior + "\n".join(lines), encoding="utf-8")
+    CHANGELOG.write_text(prior + text, encoding="utf-8")
 
+
+def print_summary(cur, tally, removed):
+    added, changed, moved = tally["added"], tally["changed"], tally["moved"]
+    bumped, redated = tally["bumped"], tally["redated"]
     print(
         f"{len(cur)} posts | +{len(added)} added | ~{len(changed)} changed | "
         f"->{len(moved)} moved | ~{len(redated)} re-dated | -{len(removed)} unpublished"
@@ -496,15 +395,22 @@ def main():
     for r in removed:
         print("  - ", r["slug"])
 
-    if args.no_commit:
-        return
-    msg = (
-        f"snapshot {now}: +{len(added)} ~{len(changed)} "
-        f"->{len(moved)} -{len(removed)}"
-        + (f" | v{len(bumped)} bumped" if bumped else "")
+
+def _git(*cmd):
+    """Run a git command in the repo root without raising; returns the CompletedProcess."""
+    return subprocess.run(
+        ["git", *cmd], cwd=ROOT, capture_output=True, text=True, check=False
     )
-    if args.note:
-        msg += f"\n\n{args.note}"
+
+
+def commit_snapshot(now, tally, removed, note):
+    msg = (
+        f"snapshot {now}: +{len(tally['added'])} ~{len(tally['changed'])} "
+        f"->{len(tally['moved'])} -{len(removed)}"
+        + (f" | v{len(tally['bumped'])} bumped" if tally["bumped"] else "")
+    )
+    if note:
+        msg += f"\n\n{note}"
     subprocess.run(["git", "add", "-A"], cwd=ROOT, check=True)
     r = subprocess.run(
         ["git", "commit", "-m", msg],
@@ -515,74 +421,74 @@ def main():
     )
     print(r.stdout.strip() or r.stderr.strip())
 
-    if args.push:
-        # The scheduled GitHub Action snapshots the same blog on its own timer.
-        # When a local run and a CI run capture the same live state, a straight
-        # push is rejected and rebasing conflicts on every meta/*.json at once —
-        # ~70 files in the first real collision. Rebase before pushing so the
-        # common case resolves itself.
-        subprocess.run(
-            ["git", "fetch", "-q", "origin"],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        # Compare against the branch's actual upstream. origin/HEAD is often
-        # unset on a clone, and the first version of this check silently
-        # returned nothing and skipped the rebase it existed to perform.
-        branch = (
-            subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout.strip()
-            or "main"
-        )
-        behind = subprocess.run(
-            ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout.strip()
-        if behind and behind != "0":
-            print(f"remote moved on by {behind} commit(s) — rebasing first")
-            r = subprocess.run(
-                ["git", "pull", "--rebase", "origin", branch],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
+
+def push_snapshot():
+    # The scheduled GitHub Action snapshots the same blog on its own timer.
+    # When a local run and a CI run capture the same live state, a straight
+    # push is rejected and rebasing conflicts on every meta/*.json at once —
+    # ~70 files in the first real collision. Rebase before pushing so the
+    # common case resolves itself.
+    _git("fetch", "-q", "origin")
+    # Compare against the branch's actual upstream. origin/HEAD is often
+    # unset on a clone, and the first version of this check silently
+    # returned nothing and skipped the rebase it existed to perform.
+    branch = _git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip() or "main"
+    behind = _git("rev-list", "--count", f"HEAD..origin/{branch}").stdout.strip()
+    if behind and behind != "0":
+        print(f"remote moved on by {behind} commit(s) — rebasing first")
+        r = _git("pull", "--rebase", "origin", branch)
+        if r.returncode != 0:
+            # Both sides snapshotted the same live blog, so the conflict is
+            # not a disagreement about content. Do not guess: abort cleanly
+            # and tell the operator the one-line recovery.
+            _git("rebase", "--abort")
+            print(
+                "rebase conflicted and was aborted — nothing was pushed.\n"
+                "Both commits describe the same live blog, so the fix is\n"
+                "  git reset --hard origin/<branch> && python3 tools/snapshot.py --push\n"
+                "which re-captures from the feed on top of the remote."
             )
-            if r.returncode != 0:
-                # Both sides snapshotted the same live blog, so the conflict is
-                # not a disagreement about content. Do not guess: abort cleanly
-                # and tell the operator the one-line recovery.
-                subprocess.run(
-                    ["git", "rebase", "--abort"],
-                    cwd=ROOT,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                print(
-                    "rebase conflicted and was aborted — nothing was pushed.\n"
-                    "Both commits describe the same live blog, so the fix is\n"
-                    "  git reset --hard origin/<branch> && python3 tools/snapshot.py --push\n"
-                    "which re-captures from the feed on top of the remote."
-                )
-                return
-        p = subprocess.run(
-            ["git", "push", "origin", "HEAD"],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
+            return
+    p = _git("push", "origin", "HEAD")
+    print(p.stderr.strip() or p.stdout.strip())
+
+
+def main():
+    args = parse_args()
+
+    POSTS.mkdir(exist_ok=True)
+    META.mkdir(exist_ok=True)
+
+    prev = load_manifest()["posts"]
+    entries = all_entries()
+    if not entries:
+        sys.exit(
+            "feed returned no posts — refusing to snapshot (would look like a wipe)"
         )
-        print(p.stderr.strip() or p.stdout.strip())
+    entries = dedupe_entries(entries)
+
+    now = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    cur, tally = process_entries(entries, prev, now, args)
+    # keep removed files: the archive is the point. Only the manifest drops them.
+    removed = [prev[k] for k in prev if k not in cur]
+    write_manifest(cur, now)
+
+    # A scheduled sync that finds nothing new must leave no trace. Writing a
+    # CHANGELOG entry every run would bury the real history under one empty
+    # commit a day — and this archive exists so the blog can be reverted to an
+    # earlier state, which means its log has to stay readable.
+    nothing_happened = not (any(tally.values()) or removed)
+    if nothing_happened and not args.allow_empty:
+        print("no change since the last snapshot — no changelog entry, no commit")
+        return
+
+    append_changelog(render_changelog(now, cur, args.note, tally, removed))
+    print_summary(cur, tally, removed)
+    if args.no_commit:
+        return
+    commit_snapshot(now, tally, removed, args.note)
+    if args.push:
+        push_snapshot()
 
 
 if __name__ == "__main__":
