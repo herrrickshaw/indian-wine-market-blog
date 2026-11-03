@@ -1,0 +1,162 @@
+{
+ "json": {
+  "rc": 0,
+  "stdout": "wrote TMP/r.json\n"
+ },
+ "report_json": {
+  "candidate_pairs": [
+   {
+    "score": 0.533,
+    "shared_labels": [
+     "Wine",
+     "Tariffs"
+    ],
+    "slugs": [
+     "a",
+     "c"
+    ]
+   },
+   {
+    "score": 0.533,
+    "shared_labels": [
+     "Wine",
+     "Tariffs"
+    ],
+    "slugs": [
+     "b",
+     "c"
+    ]
+   },
+   {
+    "score": 0.2,
+    "shared_labels": [
+     "Wine"
+    ],
+    "slugs": [
+     "a",
+     "e"
+    ]
+   },
+   {
+    "score": 0.2,
+    "shared_labels": [
+     "Wine"
+    ],
+    "slugs": [
+     "b",
+     "e"
+    ]
+   },
+   {
+    "score": 0.2,
+    "shared_labels": [
+     "Wine"
+    ],
+    "slugs": [
+     "c",
+     "d"
+    ]
+   },
+   {
+    "score": 0.2,
+    "shared_labels": [
+     "Wine"
+    ],
+    "slugs": [
+     "c",
+     "e"
+    ]
+   },
+   {
+    "score": 0.2,
+    "shared_labels": [
+     "Wine"
+    ],
+    "slugs": [
+     "d",
+     "e"
+    ]
+   }
+  ],
+  "distinct_linked_pairs": 4,
+  "orphans_both_directions": [
+   "c",
+   "e",
+   "f"
+  ],
+  "orphans_no_inbound_only": [
+   "g"
+  ],
+  "orphans_no_outbound_only": [],
+  "posts_considered": 7,
+  "top_in_degree": [
+   [
+    "a",
+    2
+   ],
+   [
+    "d",
+    1
+   ],
+   [
+    "b",
+    1
+   ],
+   [
+    "f",
+    0
+   ],
+   [
+    "g",
+    0
+   ],
+   [
+    "c",
+    0
+   ],
+   [
+    "e",
+    0
+   ]
+  ],
+  "top_out_degree": [
+   [
+    "d",
+    1
+   ],
+   [
+    "g",
+    1
+   ],
+   [
+    "b",
+    1
+   ],
+   [
+    "a",
+    1
+   ],
+   [
+    "f",
+    0
+   ],
+   [
+    "c",
+    0
+   ],
+   [
+    "e",
+    0
+   ]
+  ],
+  "total_content_link_edges": 4
+ },
+ "small_top": {
+  "rc": 0,
+  "stdout": "posts considered: 7\ncontent cross-link edges (directed): 4\ndistinct linked pairs: 4\naverage outbound content links per post: 0.57\n\n=== Orphans: zero outbound AND zero inbound content links (3) ===\n  c\n  e\n  ... and 1 more\n\n=== Zero outbound, but linked FROM elsewhere (0) ===\n\n=== Never linked TO from any other post (1) ===\n  g  (out-links: 1)\n\n=== Best-connected hubs, by outbound content links (top 2) ===\n   1  d\n   1  g\n\n=== Best-connected hubs, by inbound content links (top 2) ===\n   2  a\n   1  d\n\n=== Top candidate link opportunities (shared labels, currently unlinked) ===\n  0.533  a                                               <-> c                                               [Wine, Tariffs]\n  0.533  b                                               <-> c                                               [Wine, Tariffs]\n"
+ },
+ "text": {
+  "rc": 0,
+  "stdout": "posts considered: 7\ncontent cross-link edges (directed): 4\ndistinct linked pairs: 4\naverage outbound content links per post: 0.57\n\n=== Orphans: zero outbound AND zero inbound content links (3) ===\n  c\n  e\n  f\n\n=== Zero outbound, but linked FROM elsewhere (0) ===\n\n=== Never linked TO from any other post (1) ===\n  g  (out-links: 1)\n\n=== Best-connected hubs, by outbound content links (top 10) ===\n   1  d\n   1  g\n   1  b\n   1  a\n   0  f\n   0  c\n   0  e\n\n=== Best-connected hubs, by inbound content links (top 10) ===\n   2  a\n   1  d\n   1  b\n   0  f\n   0  g\n   0  c\n   0  e\n\n=== Top candidate link opportunities (shared labels, currently unlinked) ===\n  0.533  a                                               <-> c                                               [Wine, Tariffs]\n  0.533  b                                               <-> c                                               [Wine, Tariffs]\n  0.200  a                                               <-> e                                               [Wine]\n  0.200  b                                               <-> e                                               [Wine]\n  0.200  c                                               <-> d                                               [Wine]\n  0.200  c                                               <-> e                                               [Wine]\n  0.200  d                                               <-> e                                               [Wine]\n"
+ }
+}
