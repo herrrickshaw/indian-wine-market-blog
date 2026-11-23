@@ -424,6 +424,7 @@ def test_main_urls_file_skips_unextractable(monkeypatch, fixdir, capsys):
     "before,after,verdict,allgood",
     [
         (0, 0, "already clean", True),
+        (1, 0, "FIXED", True),
         (5, 0, "FIXED", True),
         (5, 2, "improved (3 fewer)", False),
         (2, 2, "NOT FIXED", False),

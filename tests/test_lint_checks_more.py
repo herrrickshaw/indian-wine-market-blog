@@ -206,6 +206,9 @@ def test_hidden_by_rect_geometry_boundaries():
         "TEXT_HIDDEN_BY_RECT"
     ]
     assert hit('<rect x="37.5" y="45" width="30" height="5" fill="#222"/>') == []
+    assert hit('<rect x="0" y="51.5" width="30" height="5" fill="#222"/>') == [
+        "TEXT_HIDDEN_BY_RECT"
+    ]  # just under the baseline
     assert (
         hit('<rect x="0" y="60" width="30" height="5" fill="#222"/>') == []
     )  # below the text
