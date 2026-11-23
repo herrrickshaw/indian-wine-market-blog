@@ -3,9 +3,8 @@
 import json
 import sys
 
-import pytest
-
 import blogger_api as B
+import pytest
 import snapshot as S
 
 # ---------------------------------- helpers ----------------------------------

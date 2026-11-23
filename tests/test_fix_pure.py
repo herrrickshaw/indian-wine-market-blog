@@ -3,9 +3,8 @@
 import json
 import sys
 
-import pytest
-
 import fix as F
+import pytest
 
 # ---------------------------------- body_of ----------------------------------
 

@@ -3,9 +3,8 @@
 import json
 import sys
 
-import pytest
-
 import crosslink_analysis as X
+import pytest
 import research_crosscheck as R
 
 BLOG = "https://wine-test.blogspot.com"

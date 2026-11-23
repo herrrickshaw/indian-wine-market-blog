@@ -4,9 +4,8 @@ import io
 import json
 import urllib.error
 
-import pytest
-
 import blogger_api as B
+import pytest
 
 
 @pytest.fixture(autouse=True)
@@ -494,17 +493,17 @@ def test_do_update_falls_back_to_stored_content_only_on_empty_response(
 class A:
     def __init__(self, **k):
         self.__dict__.update(
-            dict(
-                slug=None,
-                id=None,
-                title=None,
-                file=None,
-                dry_run=False,
-                yes=False,
-                draft=False,
-                manifest=None,
-                limit=0,
-            ),
+            {
+                "slug": None,
+                "id": None,
+                "title": None,
+                "file": None,
+                "dry_run": False,
+                "yes": False,
+                "draft": False,
+                "manifest": None,
+                "limit": 0,
+            },
             **k,
         )
 

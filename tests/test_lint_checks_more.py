@@ -3,10 +3,9 @@
 import json
 import sys
 
-import pytest
-
 import _local_check as LC
 import checks as C
+import pytest
 import svg_chart_lint as L
 
 
