@@ -1,0 +1,23 @@
+[run]
+source =
+    tools
+    consistency-check
+omit =
+    tests/*
+    */conftest.py
+    test_*.py
+    # drives a real Chromium through Playwright (no offline equivalent)
+    tools/mobile_check.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    # interactive OAuth loopback flow: opens a browser, binds a port, waits for Google's redirect
+    def cmd_auth\(args\):
+    # Playwright/Chromium contrast harness and its local static server (no offline equivalent)
+    def contrast_of\(page, url\):
+    def verify_live\(meta, pairs\):
+    def verify\(pairs, port=8901\):
+    def serve\(directory, port\):
+    class _Q\(http.server.SimpleHTTPRequestHandler\):
