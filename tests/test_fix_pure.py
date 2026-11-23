@@ -128,6 +128,7 @@ def test_light_lock_fallbacks():
         ("rgba(0, 0, 0, .5)", 0.0),
         ("rgb(255 0 0 / 50%)", None),
         ("#12", None),
+        ("#12345", None),
         ("#zzzzzz", None),
         ("rgb(1,2)", None),
         ("rgb(a,b,c)", None),
@@ -207,6 +208,22 @@ def test_guard_resolves_vars_gradients_and_dedupes(no_theme):
     assert (
         F.dark_panel_guard(style(".t{background:transparent}")) == ""
     )  # unparseable colour is skipped
+
+
+def test_guard_resolves_a_four_hop_var_chain(no_theme):
+    css = (
+        ":root{--a:var(--b);--b:var(--c);--c:var(--d);--d:#000}.p{background:var(--a)}"
+    )
+    assert ".p{background:#000!important}" in F.dark_panel_guard(style(css))
+
+
+def test_guard_selector_length_limit_is_exclusive_of_79_inclusive_of_80():
+    sel80 = "." + "x" * 79
+    sel79 = "." + "x" * 78
+    assert F.dark_panel_guard(style(sel80 + "{background:#000}")) == ""
+    assert sel79 + "{background:#000!important}" in F.dark_panel_guard(
+        style(sel79 + "{background:#000}")
+    )
 
 
 def test_guard_var_depth_and_long_selector_limits(no_theme):

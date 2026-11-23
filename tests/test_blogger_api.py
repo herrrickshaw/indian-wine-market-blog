@@ -870,3 +870,16 @@ def test_main_rejects_unknown_command(monkeypatch):
     with pytest.raises(SystemExit) as e:
         _main(monkeypatch, [])
     assert e.value.code == 2
+
+
+def test_find_post_requires_the_exact_slug_not_a_prefix(monkeypatch):
+    fake, _ = _pages(
+        {
+            "items": [
+                {"url": "https://w/2026/wine-extra.html", "id": "1"},
+                {"url": "https://w/2026/wine.html", "id": "2"},
+            ]
+        }
+    )
+    monkeypatch.setattr(B, "api", fake)
+    assert B.find_post("wine")["id"] == "2"

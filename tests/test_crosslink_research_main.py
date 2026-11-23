@@ -312,3 +312,15 @@ def test_main_auto_mode(archive, tmp_path, monkeypatch, capsys):
         "--auto extracted 1 candidate terms (crude" in out
         and "Grover Zampa Vineyards" in out
     )
+
+
+def test_main_exactly_three_hits_has_no_more_line(
+    archive, tmp_path, monkeypatch, capsys
+):
+    for i in range(3):
+        (archive / f"p{i}.html").write_text("<p>Sula here</p>", encoding="utf-8")
+    d = tmp_path / "d.html"
+    d.write_text("<p>x</p>", encoding="utf-8")
+    run_r(monkeypatch, "--terms", "Sula", str(d))
+    out = capsys.readouterr().out
+    assert "Sula  (3 posts)" in out and "… and" not in out

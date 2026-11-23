@@ -468,3 +468,37 @@ def test_push_rebases_when_behind_and_aborts_on_conflict(arch, monkeypatch, caps
         -1
     ] == ["git", "rebase", "--abort"]
     assert "nothing was pushed" in capsys.readouterr().out
+
+
+def test_classify_counts_repeated_numbers(arch):
+    # same distinct numbers, but one value now appears once instead of twice: the figures changed
+    assert S.classify("<p>5 and 5</p>", "<p>5</p>")[0] == "major"
+
+
+def test_redate_is_not_reported_when_the_body_also_changed(arch, monkeypatch):
+    arch["items"] = [[post("1", "a", "<p>one</p>")]]
+    run_main(monkeypatch, "--no-commit")
+    arch["calls"].clear()
+    arch["items"] = [
+        [post("1", "a", "<p>two</p>", published="2026-05-05T00:00:00+05:30")]
+    ]
+    run_main(monkeypatch, "--no-commit")
+    log = (arch["root"] / "CHANGELOG.md").read_text()
+    assert "**Changed**" in log and "**Re-dated**" not in log
+
+
+def test_a_lone_redate_still_writes_a_changelog_entry_and_commits(
+    arch, monkeypatch, capsys
+):
+    arch["items"] = [[post("1", "a")]]
+    run_main(monkeypatch, "--no-commit")
+    arch["calls"].clear()
+    arch["git"].clear()
+    arch["items"] = [[post("1", "a", published="2026-02-02T00:00:00+05:30")]]
+    run_main(monkeypatch)
+    log = (arch["root"] / "CHANGELOG.md").read_text()
+    assert (
+        "**Re-dated**" in log
+        and "no change since the last snapshot" not in capsys.readouterr().out
+    )
+    assert [c[1] for c in arch["git"]][:2] == ["add", "commit"]
