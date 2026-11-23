@@ -142,31 +142,33 @@ def test_big_label_clusters_are_ignored(site, monkeypatch):
 
 
 def test_main_text_report(site, monkeypatch, capsys):
-    posts = {"a": link("b"), "b": "", "c": "", "d": link("a")}
-    make_site(site, posts, {"a": ["L"], "b": ["L"], "c": ["L"], "d": ["L"]})
+    posts = {"a": link("b") + link("c"), "b": "", "c": "", "d": link("a"), "e": ""}
+    make_site(site, posts, {s: ["L"] for s in posts})
     assert run_x(monkeypatch, "--top", "1") == 0
     out = capsys.readouterr().out
     assert (
-        "posts considered: 4" in out and "content cross-link edges (directed): 2" in out
+        "posts considered: 5" in out and "content cross-link edges (directed): 3" in out
     )
     assert (
-        "distinct linked pairs: 2" in out
-        and "average outbound content links per post: 0.50" in out
+        "distinct linked pairs: 3" in out
+        and "average outbound content links per post: 0.60" in out
     )
     assert (
-        "=== Orphans: zero outbound AND zero inbound content links (1) ===\n  c\n"
+        "=== Orphans: zero outbound AND zero inbound content links (1) ===\n  e\n"
         in out
     )
     assert (
-        "=== Zero outbound, but linked FROM elsewhere (1) ===\n  b  (in-links: 1)"
+        "=== Zero outbound, but linked FROM elsewhere (2) ===\n  b  (in-links: 1)\n"
         in out
     )
     assert "=== Never linked TO from any other post (1) ===\n  d  (out-links: 1)" in out
     assert "Best-connected hubs, by outbound content links (top 1)" in out
     assert (
-        "  1  a" in out and "Top candidate link opportunities" in out and "[L]" in out
+        "\n   2  a\n" in out
+        and "Top candidate link opportunities" in out
+        and "[L]" in out
     )
-    assert "... and" not in out
+    assert "... and" not in out.split("Zero outbound")[0]
 
 
 def test_text_report_truncates_long_lists(site, monkeypatch, capsys):
